@@ -1,0 +1,6 @@
+node_modules/
+data/
+.env
+# figurinhas são pessoais: só o guia vai pro GitHub
+public/figurinhas/*
+!public/figurinhas/LEIA-ME.txt

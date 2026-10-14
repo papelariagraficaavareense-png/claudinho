@@ -1,0 +1,14 @@
+{
+  "name": "claudinho",
+  "version": "0.1.0",
+  "description": "Claudinho - o cerebro da garagem (assistente de voz da oficina de aeromodelo)",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
+    "lottie-web": "^5.12.2"
+  }
+}

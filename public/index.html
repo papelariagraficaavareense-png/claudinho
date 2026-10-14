@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claudinho Garagem</title>
+<link rel="icon" type="image/png" href="/claudinho.png">
+<style>
+  :root { --bg:#070b12; --painel:#0d1420; --borda:#1c2a3d; --texto:#dbe7f5; --fraco:#6f859e; --azul:#35c6ff; --laranja:#ff9d3c; --verde:#4be3a1; --vermelho:#ff5d5d; --coral:#f08a5d; }
+  * { box-sizing:border-box; }
+  html,body { height:100%; margin:0; }
+  body { background:var(--bg); color:var(--texto); font-family:"Segoe UI",system-ui,sans-serif; display:grid; grid-template-rows:auto 1fr auto; gap:16px; padding:20px; overflow:hidden; }
+  header { display:flex; justify-content:space-between; align-items:baseline; }
+  header h1 { margin:0; font-size:22px; font-weight:600; letter-spacing:.18em; color:var(--azul); }
+  header h1 small { color:var(--fraco); font-weight:400; letter-spacing:.08em; margin-left:12px; font-size:13px; }
+  #relogio { font-size:40px; font-weight:300; font-variant-numeric:tabular-nums; }
+  #data { color:var(--fraco); font-size:14px; text-align:right; }
+  main { display:grid; grid-template-columns:minmax(220px,1fr) minmax(320px,1.4fr) minmax(220px,1fr); gap:16px; min-height:0; }
+  .painel { background:var(--painel); border:1px solid var(--borda); border-radius:12px; padding:16px; overflow:auto; min-height:0; }
+  .painel h2 { margin:0 0 12px; font-size:12px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--fraco); }
+  .painel h2:not(:first-child) { margin-top:22px; }
+  .vazio { color:var(--fraco); font-size:14px; }
+  .cron { display:flex; justify-content:space-between; align-items:baseline; padding:10px 0; border-bottom:1px solid var(--borda); gap:12px; }
+  .cron b { font-weight:500; }
+  .cron span { font-size:26px; font-variant-numeric:tabular-nums; color:var(--laranja); }
+  .cron.fim span { color:var(--verde); }
+  #projeto-nome { font-size:20px; margin-bottom:10px; }
+  ul { list-style:none; margin:0 0 14px; padding:0; }
+  li { padding:4px 0 4px 22px; position:relative; font-size:15px; }
+  li::before { content:""; position:absolute; left:2px; top:10px; width:10px; height:10px; border-radius:50%; border:2px solid var(--fraco); }
+  li.ok { color:var(--fraco); } li.ok::before { background:var(--verde); border-color:var(--verde); }
+  .nota { font-size:14px; padding:8px 0; border-bottom:1px solid var(--borda); }
+  .nota time { color:var(--fraco); font-size:12px; display:block; }
+  #centro { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px; text-align:center; }
+  #orbe { width:min(50vh,360px); }
+  #orbe svg { width:100%; display:block; overflow:visible; }
+  #orbe .flutua { animation:flutuar 3.2s ease-in-out infinite; }
+  #orbe .sombra { transform-box:fill-box; transform-origin:center; animation:sombra 3.2s ease-in-out infinite; }
+  #orbe .olhos { transform-box:fill-box; transform-origin:center; transition:transform .35s ease; }
+  #orbe .olho { transform-box:fill-box; transform-origin:center; animation:piscar 4.5s infinite; }
+  #orbe .helice { transform-origin:150px 34px; }
+  #orbe .luz { fill:#5ff0ff; transition:fill .3s; }
+  #orbe .brilho-tela { filter:drop-shadow(0 0 6px #5ff0ff); }
+  #orbe .pontos circle { opacity:0; }
+  @keyframes flutuar { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-7px); } }
+  @keyframes sombra { 0%,100% { transform:scaleX(1); opacity:.35; } 50% { transform:scaleX(.85); opacity:.22; } }
+  @keyframes piscar { 0%,93%,100% { transform:scaleY(1); } 96% { transform:scaleY(.08); } }
+  @keyframes gira { to { transform:rotate(360deg); } }
+  @keyframes pulsaLuz { 0%,100% { opacity:1; } 50% { opacity:.35; } }
+  @keyframes ponto { 0%,100% { opacity:.2; transform:translateY(0); } 50% { opacity:1; transform:translateY(-6px); } }
+  #orbe.ouvindo .luz { fill:#4be3a1; animation:pulsaLuz .8s ease-in-out infinite; }
+  #orbe.ouvindo .olhos { transform:scale(1.12); }
+  #orbe.pensando .olhos { transform:translate(-9px,-9px); }
+  #orbe.pensando .helice { animation:gira .45s linear infinite; }
+  #orbe.pensando .pontos circle { animation:ponto 1s ease-in-out infinite; }
+  #orbe.pensando .pontos circle:nth-child(2) { animation-delay:.15s; }
+  #orbe.pensando .pontos circle:nth-child(3) { animation-delay:.3s; }
+  #orbe.falando .peito { animation:pulsaLuz .5s ease-in-out infinite; }
+  #status { font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--fraco); }
+  #voce { color:var(--fraco); font-size:16px; min-height:22px; max-width:90%; }
+  #fala { font-size:22px; line-height:1.45; max-width:92%; min-height:64px; }
+  #aviso { color:var(--laranja); font-size:14px; max-width:90%; }
+  footer { display:flex; gap:10px; align-items:center; transition:opacity .5s; }
+  /* Tela limpa: os botões somem sozinhos e voltam quando mexe o mouse ou aperta uma tecla */
+  body.limpo footer { opacity:0; pointer-events:none; }
+  body.limpo { cursor:none; }
+  /* Painel vazio não aparece (no lugar dele fica só espaço) */
+  .painel.sem-nada { visibility:hidden; }
+  footer input[type=text] { flex:1; background:var(--painel); border:1px solid var(--borda); color:var(--texto); border-radius:10px; padding:12px 14px; font:inherit; font-size:16px; }
+  footer input[type=text]:focus { outline:2px solid var(--azul); outline-offset:-1px; }
+  button { background:var(--painel); border:1px solid var(--borda); color:var(--texto); border-radius:10px; padding:12px 18px; font:inherit; font-size:15px; cursor:pointer; white-space:nowrap; }
+  button:hover { border-color:var(--azul); }
+  select { background:var(--painel); border:1px solid var(--borda); color:var(--texto); border-radius:10px; padding:12px 10px; font:inherit; font-size:15px; max-width:230px; }
+  button.ligado { border-color:var(--verde); color:var(--verde); }
+  @media (max-width:820px) { body { overflow:auto; } main { grid-template-columns:1fr; } #centro { order:-1; } footer { flex-wrap:wrap; } .painel.sem-nada { display:none; } }
+  @media (prefers-reduced-motion:reduce) { #orbe * { animation:none !important; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>CLAUDINHO<small>cérebro da garagem</small></h1>
+  <div><div id="relogio">--:--</div><div id="data"></div></div>
+</header>
+
+<main>
+  <section class="painel" id="painel-cron">
+    <h2>Cronômetros</h2>
+    <div id="cronometros"><div class="vazio">Nenhum rodando. Diga "marca trinta minutos do epóxi".</div></div>
+  </section>
+
+  <section id="centro">
+    <div id="figura" hidden><img id="figurinha" alt=""></div>
+    <div id="animacao" hidden></div>
+    <div id="cabeca" hidden><div class="boca-fundo"></div><img class="cima" alt=""><img class="queixo" alt=""></div>
+    <div id="orbe" aria-hidden="true">
+      <svg viewBox="0 0 300 320">
+        <defs>
+          <linearGradient id="casco" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb07c"/><stop offset="1" stop-color="#e2672f"/></linearGradient>
+          <linearGradient id="casco-escuro" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9773f"/><stop offset="1" stop-color="#a94a22"/></linearGradient>
+          <linearGradient id="pa" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe066"/><stop offset="1" stop-color="#f5a623"/></linearGradient>
+          <radialGradient id="tela" cx=".5" cy=".35" r=".75"><stop offset="0" stop-color="#1b2a40"/><stop offset="1" stop-color="#0a111c"/></radialGradient>
+        </defs>
+        <ellipse class="sombra" cx="150" cy="306" rx="72" ry="8" fill="#000"/>
+        <g class="flutua">
+          <rect x="145" y="36" width="10" height="30" rx="4" fill="#8a93a6"/>
+          <g class="helice">
+            <ellipse cx="108" cy="34" rx="42" ry="8" fill="url(#pa)"/>
+            <ellipse cx="192" cy="34" rx="42" ry="8" fill="url(#pa)"/>
+            <circle cx="150" cy="34" r="10" fill="#f08a5d" stroke="#a94a22" stroke-width="3"/>
+          </g>
+          <rect x="38" y="122" width="28" height="60" rx="12" fill="url(#casco-escuro)"/>
+          <rect x="234" y="122" width="28" height="60" rx="12" fill="url(#casco-escuro)"/>
+          <circle class="luz" cx="52" cy="152" r="6"/>
+          <circle class="luz" cx="248" cy="152" r="6"/>
+          <rect x="60" y="64" width="180" height="162" rx="52" fill="url(#casco)"/>
+          <ellipse cx="112" cy="88" rx="38" ry="11" fill="#fff" opacity=".28"/>
+          <rect x="80" y="94" width="140" height="106" rx="32" fill="url(#tela)" stroke="#7a3514" stroke-width="4"/>
+          <path d="M96 112 Q104 102 118 100" stroke="#fff" stroke-width="4" stroke-linecap="round" fill="none" opacity=".12"/>
+          <g class="brilho-tela">
+            <g class="olhos">
+              <rect class="olho" x="105" y="120" width="26" height="36" rx="13" fill="#5ff0ff"/>
+              <rect class="olho" x="169" y="120" width="26" height="36" rx="13" fill="#5ff0ff"/>
+              <circle cx="122" cy="129" r="4" fill="#fff"/>
+              <circle cx="186" cy="129" r="4" fill="#fff"/>
+            </g>
+            <rect id="boca" x="128" y="174" width="44" height="6" rx="3" fill="#5ff0ff"/>
+          </g>
+          <circle cx="97" cy="172" r="8" fill="#ff7a8a" opacity=".35"/>
+          <circle cx="203" cy="172" r="8" fill="#ff7a8a" opacity=".35"/>
+          <rect x="128" y="224" width="44" height="14" rx="4" fill="#8a93a6"/>
+          <rect x="72" y="244" width="22" height="42" rx="11" fill="url(#casco-escuro)"/>
+          <rect x="206" y="244" width="22" height="42" rx="11" fill="url(#casco-escuro)"/>
+          <rect x="90" y="234" width="120" height="62" rx="26" fill="url(#casco)"/>
+          <circle class="luz peito" cx="150" cy="264" r="11"/>
+        </g>
+        <g class="pontos">
+          <circle cx="236" cy="62" r="7" fill="#ffd23f"/>
+          <circle cx="256" cy="52" r="7" fill="#ffd23f"/>
+          <circle cx="276" cy="42" r="7" fill="#ffd23f"/>
+        </g>
+      </svg>
+    </div>
+    <div id="status" role="status">em espera</div>
+    <div id="voce"></div>
+    <div id="fala">Oi, chefe. Aperte Falar ou a barra de espaço.</div>
+    <div id="aviso"></div>
+  </section>
+
+  <section class="painel" id="painel-proj">
+    <h2>Avião em construção</h2>
+    <div id="projeto"><div class="vazio">Nenhum projeto ainda. Diga "estou construindo um…".</div></div>
+    <h2>Diário da oficina</h2>
+    <div id="diario"><div class="vazio">Sem anotações.</div></div>
+  </section>
+</main>
+
+<footer>
+  <button id="btn-falar" type="button">Falar (espaço)</button>
+  <button id="btn-sempre" type="button" title="Fica ouvindo e responde quando você disser Claudinho">Sempre ouvindo: não</button>
+  <select id="voz" title="Voz do Claudinho (as com estrela são as naturais)" aria-label="Voz do Claudinho" hidden></select>
+  <input id="texto" type="text" placeholder="…ou escreva aqui e aperte Enter" autocomplete="off">
+</footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const orbe = $("orbe"), statusEl = $("status"), voceEl = $("voce"), falaEl = $("fala"), avisoEl = $("aviso");
+const ROTULOS = { espera: "em espera", ouvindo: "ouvindo", pensando: "pensando", falando: "falando" };
+const CHAMADO = /\b(?:(?:hey|hei|ei|ey|rei|oi|ok|e)[,\s]+)?cl[aá]udi(?:nh|n)[oa]s?\b[,.!?]?\s*/i;
+const ESPERA_PEDIDO = 8000;
+
+let modo = "espera";
+let cronometros = [];
+const avisados = new Set();
+
+// ---------- figurinhas escolhidas pelo Diego (pasta public/figurinhas) ----------
+// espera.gif, ouvindo.gif, pensando.gif, falando.gif (ou .png/.webp/.jpg); sem elas, aparece o robô.
+const FIGURINHAS = {};
+let lottieAnim = null, lottieSrc = null, lottiePronto = null;
+function tocarLottie(src) {
+  lottiePronto = lottiePronto || new Promise((ok, erro) => {
+    const s = document.createElement("script");
+    s.src = "/lib/lottie.min.js";
+    s.onload = ok;
+    s.onerror = erro;
+    document.head.append(s);
+  });
+  lottiePronto.then(() => {
+    if (lottieSrc === src) return;
+    if (lottieAnim) lottieAnim.destroy();
+    lottieSrc = src;
+    lottieAnim = window.lottie.loadAnimation({ container: $("animacao"), renderer: "svg", loop: true, autoplay: true, path: src });
+  }).catch(() => {});
+}
+
+function mostrarFigurinha() {
+  // Uma figurinha parada também ganha vida: respira, pula, balança e "fala" conforme o momento.
+  const caixa = $("figura"), img = $("figurinha"), cabeca = $("cabeca"), animacao = $("animacao");
+  // Animação Lottie (.json do lottiefiles.com): tem prioridade sobre as imagens
+  const json = FIGURINHAS[modo] || FIGURINHAS.espera;
+  if (json && json.endsWith(".json")) {
+    animacao.className = modo;
+    animacao.hidden = false;
+    cabeca.hidden = caixa.hidden = orbe.hidden = true;
+    tocarLottie(json);
+    return;
+  }
+  animacao.hidden = true;
+  // rosto.png: só o rosto, com o queixo que abre e fecha enquanto ele fala
+  if (FIGURINHAS.rosto) {
+    for (const parte of cabeca.querySelectorAll("img")) if (parte.getAttribute("src") !== FIGURINHAS.rosto) parte.src = FIGURINHAS.rosto;
+    cabeca.className = modo;
+    cabeca.hidden = false;
+    caixa.hidden = true;
+    orbe.hidden = true;
+    return;
+  }
+  cabeca.hidden = true;
+  const src = FIGURINHAS[modo] || FIGURINHAS.espera;
+  if (!src) { caixa.hidden = true; orbe.hidden = false; return; }
+  if (img.getAttribute("src") !== src) img.src = src;
+  caixa.className = modo;
+  caixa.hidden = false;
+  orbe.hidden = true;
+}
+fetch("/api/figurinhas").then((r) => r.json()).then((lista) => {
+  for (const nome of lista) {
+    const chave = nome.replace(/\.[^.]+$/, "").toLowerCase();
+    // com o mesmo nome, a animação .json ganha da imagem
+    if (FIGURINHAS[chave] && FIGURINHAS[chave].endsWith(".json")) continue;
+    FIGURINHAS[chave] = "/figurinhas/" + encodeURIComponent(nome);
+  }
+  mostrarFigurinha();
+}).catch(() => {});
+
+// Boca: abre a cada palavra que a voz fala e, entre palavras, mexe sozinha enquanto ele fala.
+let boca = 0, bocaAlvo = 0, proximaBoca = 0;
+function animarBoca(agora) {
+  if (modo === "falando") {
+    if (agora > proximaBoca) {
+      bocaAlvo = Math.random() < 0.7 ? 0.25 + Math.random() * 0.75 : 0.05;
+      proximaBoca = agora + 90 + Math.random() * 90;
+    }
+  } else {
+    bocaAlvo = 0;
+  }
+  boca += (bocaAlvo - boca) * 0.35;
+  const el = document.getElementById("boca");
+  if (el) {
+    const h = 6 + boca * 24, w = 44 - boca * 12;
+    el.setAttribute("height", h.toFixed(1));
+    el.setAttribute("y", (177 - h / 2).toFixed(1));
+    el.setAttribute("width", w.toFixed(1));
+    el.setAttribute("x", (150 - w / 2).toFixed(1));
+    el.setAttribute("rx", Math.min(h / 2, 12).toFixed(1));
+  }
+  requestAnimationFrame(animarBoca);
+}
+requestAnimationFrame(animarBoca);
+
+function setModo(m) {
+  modo = m;
+  orbe.className = m === "espera" ? "" : m;
+  mostrarFigurinha();
+  statusEl.textContent = ROTULOS[m];
+}
+
+// ---------- relógio ----------
+function relogio() {
+  const d = new Date();
+  $("relogio").textContent = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  $("data").textContent = d.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+}
+
+// ---------- painéis ----------
+function el(tag, classe, texto) {
+  const e = document.createElement(tag);
+  if (classe) e.className = classe;
+  if (texto != null) e.textContent = texto;
+  return e;
+}
+
+function restante(fimEm) {
+  const s = Math.max(0, Math.round((fimEm - Date.now()) / 1000));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), seg = s % 60;
+  return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(seg).padStart(2, "0");
+}
+
+function desenharCronometros() {
+  const caixa = $("cronometros");
+  if (!cronometros.length) {
+    caixa.replaceChildren(el("div", "vazio", 'Nenhum rodando. Diga "marca trinta minutos do epóxi".'));
+    return;
+  }
+  caixa.replaceChildren(...cronometros.map((c) => {
+    const acabou = c.fimEm <= Date.now();
+    const linha = el("div", "cron" + (acabou ? " fim" : ""));
+    linha.append(el("b", "", c.nome), el("span", "", acabou ? "pronto" : restante(c.fimEm)));
+    return linha;
+  }));
+}
+
+function conferirCronometros() {
+  for (const c of cronometros) {
+    if (c.fimEm > Date.now() || avisados.has(c.id)) continue;
+    avisados.add(c.id);
+    dizer(`Chefe, terminou o cronômetro: ${c.nome}.`);
+    setTimeout(() => {
+      fetch("/api/cronometro/encerrar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c.id }) })
+        .then((r) => r.json()).then(aplicar).catch(() => {});
+    }, 20000);
+  }
+}
+
+// Quando o servidor volta numa versão nova (atualização automática), a tela recarrega sozinha.
+let versaoVista = null;
+function aplicar(estado) {
+  if (estado.versao != null) {
+    if (versaoVista != null && estado.versao !== versaoVista && modo === "espera") return location.reload();
+    if (versaoVista == null) versaoVista = estado.versao;
+  }
+  cronometros = estado.cronometros || [];
+  desenharCronometros();
+
+  const p = estado.projeto || {};
+  const projeto = $("projeto");
+  if (!p.nome && !(p.feito || []).length && !(p.falta || []).length) {
+    projeto.replaceChildren(el("div", "vazio", 'Nenhum projeto ainda. Diga "estou construindo um…".'));
+  } else {
+    const ul = el("ul");
+    (p.feito || []).forEach((t) => ul.append(el("li", "ok", t)));
+    (p.falta || []).forEach((t) => ul.append(el("li", "", t)));
+    const nome = el("div", "", p.nome || "Projeto sem nome");
+    nome.id = "projeto-nome";
+    projeto.replaceChildren(nome, ul);
+  }
+
+  const notas = (estado.diario || []).slice().reverse();
+  $("diario").replaceChildren(...(notas.length ? notas.map((n) => {
+    const nota = el("div", "nota");
+    nota.append(el("time", "", new Date(n.quando).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })), document.createTextNode(n.texto));
+    return nota;
+  }) : [el("div", "vazio", "Sem anotações.")]));
+
+  $("painel-cron").classList.toggle("sem-nada", !cronometros.length);
+  $("painel-proj").classList.toggle("sem-nada", !p.nome && !(p.feito || []).length && !(p.falta || []).length && !notas.length);
+
+  avisoEl.textContent = estado.temChave ? "" : "Claudinho sem cérebro: falta instalar o Claude Code neste computador e entrar com a sua conta.";
+}
+
+function buscarEstado() {
+  fetch("/api/estado").then((r) => r.json()).then(aplicar).catch(() => { avisoEl.textContent = "Servidor do Claudinho fora do ar."; });
+}
+
+// ---------- sons ----------
+let audio = null;
+function bip(notas) {
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    audio.resume();
+    let t = audio.currentTime;
+    for (const freq of notas) {
+      const osc = audio.createOscillator(), ganho = audio.createGain();
+      osc.frequency.value = freq;
+      ganho.gain.setValueAtTime(0.0001, t);
+      ganho.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
+      ganho.gain.exponentialRampToValueAtTime(0.0001, t + 0.17);
+      osc.connect(ganho).connect(audio.destination);
+      osc.start(t);
+      osc.stop(t + 0.19);
+      t += 0.13;
+    }
+  } catch {}
+}
+const SOM_ACORDOU = [660, 990], SOM_DESISTIU = [660, 440];
+
+// ---------- voz: falar ----------
+const sintese = window.speechSynthesis;
+let voz = null;
+function escolherVoz() {
+  if (!sintese) return;
+  const vozes = sintese.getVoices().filter((v) => v.lang.toLowerCase().replace("_", "-").startsWith("pt-br"));
+  let salva = "";
+  try { salva = localStorage.getItem("claudinho.voz") || ""; } catch {}
+  // Vozes "Natural" do Edge soam humanas; as outras são as vozes antigas do Windows.
+  voz = vozes.find((v) => v.name === salva)
+    || vozes.find((v) => /natural/i.test(v.name) && /antonio/i.test(v.name))
+    || vozes.find((v) => /natural/i.test(v.name))
+    || vozes.find((v) => /google/i.test(v.name))
+    || vozes[0] || null;
+  const seletor = $("voz");
+  seletor.replaceChildren(...vozes.map((v) => {
+    const op = el("option", "", v.name.replace(/^Microsoft /, "").replace(/ - Portuguese \(Brazil\)$/, "") + (/natural/i.test(v.name) ? " ★" : ""));
+    op.value = v.name;
+    op.selected = v === voz;
+    return op;
+  }));
+  seletor.hidden = vozes.length < 2;
+  seletor.onchange = () => {
+    voz = vozes.find((v) => v.name === seletor.value) || voz;
+    try { localStorage.setItem("claudinho.voz", seletor.value); } catch {}
+    dizer("Essa é a minha voz, chefe.");
+  };
+}
+if (sintese) { escolherVoz(); sintese.onvoiceschanged = escolherVoz; }
+
+function dizer(texto) {
+  falaEl.textContent = texto;
+  if (!sintese) { setModo("espera"); return; }
+  pararEscuta();
+  sintese.cancel();
+  const u = new SpeechSynthesisUtterance(texto);
+  u.lang = "pt-BR";
+  if (voz) u.voice = voz;
+  u.rate = 1.05;
+  u.onboundary = () => { bocaAlvo = 1; proximaBoca = performance.now() + 140; };
+  u.onstart = () => setModo("falando");
+  u.onend = u.onerror = () => { setModo("espera"); if (sempre) escutar(); };
+  sintese.speak(u);
+}
+
+// ---------- conversa ----------
+async function enviar(texto) {
+  texto = texto.trim();
+  if (!texto) return;
+  pararEscuta();
+  voceEl.textContent = "Você: " + texto;
+  setModo("pensando");
+  try {
+    const r = await fetch("/api/falar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ texto }) });
+    const dados = await r.json();
+    if (dados.estado) aplicar(dados.estado);
+    dizer(dados.fala || "Não entendi, chefe.");
+  } catch {
+    dizer("Não consegui falar com o servidor, chefe.");
+  }
+}
+
+// ---------- voz: ouvir ----------
+const Reconhecimento = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, ouvindo = false, sempre = false, umaVez = false, armadoAte = 0;
+
+function escutar() {
+  if (!Reconhecimento) { avisoEl.textContent = "Este navegador não tem reconhecimento de voz. Use o Chrome ou o Edge."; return; }
+  if (ouvindo || modo === "pensando" || modo === "falando") return;
+  rec = new Reconhecimento();
+  rec.lang = "pt-BR";
+  rec.interimResults = true;
+  rec.continuous = sempre && !umaVez;
+  rec.onstart = () => { ouvindo = true; if (umaVez || Date.now() < armadoAte) setModo("ouvindo"); };
+  rec.onresult = (ev) => {
+    const r = ev.results[ev.results.length - 1];
+    const dito = r[0].transcript.trim();
+    const direto = umaVez || Date.now() < armadoAte;
+    if (direto || CHAMADO.test(dito)) { voceEl.textContent = "Você: " + dito; setModo("ouvindo"); }
+    if (!r.isFinal) return;
+    if (direto) { umaVez = false; armadoAte = 0; return enviar(dito); }
+    if (!CHAMADO.test(dito)) return;
+    const pedido = dito.replace(CHAMADO, "").trim();
+    if (pedido.length > 2) { bip(SOM_ACORDOU); return enviar(pedido); }
+    // Só o chamado: toca o bip e espera o pedido na próxima frase.
+    armadoAte = Date.now() + ESPERA_PEDIDO;
+    bip(SOM_ACORDOU);
+    voceEl.textContent = "";
+    falaEl.textContent = "Pois não, chefe?";
+    setModo("ouvindo");
+    setTimeout(() => {
+      if (modo !== "ouvindo" || Date.now() < armadoAte) return;
+      bip(SOM_DESISTIU);
+      setModo("espera");
+    }, ESPERA_PEDIDO + 100);
+  };
+  rec.onerror = (ev) => {
+    if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
+      sempre = false; atualizarBotao();
+      avisoEl.textContent = "O navegador bloqueou o microfone. Libere o microfone para este endereço.";
+    }
+  };
+  rec.onend = () => {
+    ouvindo = false;
+    umaVez = false;
+    if (modo === "ouvindo") setModo("espera");
+    if (sempre && modo === "espera") setTimeout(escutar, 300);
+  };
+  try { rec.start(); } catch {}
+}
+
+function pararEscuta() {
+  if (rec && ouvindo) { rec.onend = () => { ouvindo = false; }; try { rec.abort(); } catch {} ouvindo = false; }
+}
+
+function apertarFalar() {
+  if (modo === "falando") { sintese.cancel(); setModo("espera"); }
+  if (modo === "pensando") return;
+  pararEscuta();
+  bip(SOM_ACORDOU);
+  umaVez = true;
+  escutar();
+}
+
+function atualizarBotao() {
+  $("btn-sempre").textContent = "Sempre ouvindo: " + (sempre ? "sim" : "não");
+  $("btn-sempre").classList.toggle("ligado", sempre);
+}
+
+$("btn-falar").addEventListener("click", apertarFalar);
+$("btn-sempre").addEventListener("click", () => {
+  sempre = !sempre;
+  atualizarBotao();
+  if (sempre) bip(SOM_ACORDOU);
+  if (sempre) escutar(); else pararEscuta();
+});
+$("texto").addEventListener("keydown", (ev) => {
+  if (ev.key !== "Enter") return;
+  const t = ev.target.value;
+  ev.target.value = "";
+  enviar(t);
+});
+document.addEventListener("keydown", (ev) => {
+  if (ev.code === "Space" && document.activeElement !== $("texto")) { ev.preventDefault(); apertarFalar(); }
+});
+
+let tempoControles = 0;
+function mostrarControles() {
+  document.body.classList.remove("limpo");
+  clearTimeout(tempoControles);
+  tempoControles = setTimeout(() => {
+    if (document.activeElement !== $("texto") && document.activeElement !== $("voz")) document.body.classList.add("limpo");
+  }, 4000);
+}
+for (const ev of ["mousemove", "mousedown", "keydown", "touchstart"]) document.addEventListener(ev, mostrarControles, { passive: true });
+mostrarControles();
+
+relogio();
+buscarEstado();
+setInterval(relogio, 1000);
+setInterval(() => { desenharCronometros(); conferirCronometros(); }, 500);
+setInterval(buscarEstado, 3000);
+</script>
+</body>
+</html>

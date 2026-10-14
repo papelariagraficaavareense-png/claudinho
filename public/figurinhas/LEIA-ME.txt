@@ -1,0 +1,19 @@
+FIGURINHAS DO CLAUDINHO
+
+Coloque nesta pasta o que voce quiser, com estes nomes:
+
+  espera     -> quando ele esta parado esperando
+  ouvindo    -> quando ele esta ouvindo voce
+  pensando   -> quando ele esta pensando
+  falando    -> quando ele esta falando
+
+Tipos aceitos:
+  .json  -> animacao do lottiefiles.com (a melhor opcao; baixe no formato "Lottie JSON")
+  .gif   -> GIF animado
+  .png .webp .jpg -> imagem parada (ele da um movimento simples)
+  rosto.png -> so o rosto: a boca abre e fecha quando ele fala
+
+So o "espera" e obrigatorio: se faltar algum dos outros, ele usa o espera no lugar.
+Sem nada aqui, aparece o robozinho laranja.
+
+Depois de colocar, aperte F5 no Claudinho (ou feche e abra de novo).
