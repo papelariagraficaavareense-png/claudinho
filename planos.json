@@ -35,8 +35,7 @@
         },
         {
           "titulo": "Atualização automática pelo GitHub",
-          "status": "andamento",
-          "obs": "falta o Diego rodar o comando que cria o repositório"
+          "status": "feito"
         },
         {
           "titulo": "Ligar a TV sozinho quando ouvir \"hey Claudinho\"",
