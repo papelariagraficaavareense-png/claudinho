@@ -171,6 +171,7 @@ const TOOLS = [
 ];
 
 // ---------- estado da oficina (carregado uma vez, salvo quando muda) ----------
+let diagnostico = [];
 let paraAbrir = null; // página que a tela deve abrir depois da resposta
 let estado = { cronometros: [], projeto: { nome: "", feito: [], falta: [] }, diario: [], tarefas: [] };
 try { estado = { ...estado, ...JSON.parse(fs.readFileSync(ARQ_ESTADO, "utf8")) }; } catch {}
@@ -440,6 +441,13 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
       return fs.createReadStream(path.join(here, "public", "voz.html")).pipe(res);
     }
+    // Diário do ouvido: a tela conta o que o reconhecimento de fala está fazendo (pra diagnosticar de longe)
+    if (req.method === "POST" && url.pathname === "/api/diag") {
+      const { evento } = await lerCorpo(req);
+      if (typeof evento === "string") { diagnostico.push(new Date().toLocaleTimeString("pt-BR") + " " + evento.slice(0, 200)); diagnostico = diagnostico.slice(-60); }
+      return json(res, 200, { ok: true });
+    }
+    if (req.method === "GET" && url.pathname === "/api/diag") return json(res, 200, diagnostico);
     if (req.method === "GET" && url.pathname === "/api/voz") return json(res, 200, voz.estado());
     if (req.method === "POST" && url.pathname === "/api/voz/apagar") return json(res, 200, voz.apagar());
     if (req.method === "POST" && (url.pathname === "/api/voz/cadastrar" || url.pathname === "/api/voz/conferir")) {

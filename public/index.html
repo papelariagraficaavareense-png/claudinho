@@ -475,19 +475,25 @@ async function enviar(texto) {
 const Reconhecimento = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec = null, ouvindo = false, sempre = false, umaVez = false, armadoAte = 0;
 
+function diag(evento) {
+  fetch("/api/diag", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ evento }) }).catch(() => {});
+}
+
 function escutar() {
+  diag("escutar() sempre=" + sempre + " modo=" + modo + " ouvindo=" + ouvindo + " temReconhecimento=" + !!Reconhecimento);
   if (!Reconhecimento) { avisoEl.textContent = "Este navegador não tem reconhecimento de voz. Use o Chrome ou o Edge."; return; }
   if (ouvindo || modo === "pensando" || modo === "falando") return;
   rec = new Reconhecimento();
   rec.lang = "pt-BR";
   rec.interimResults = true;
   rec.continuous = sempre && !umaVez;
-  rec.onstart = () => { ouvindo = true; if (sempre && !$("ouvi").textContent) $("ouvi").textContent = "🎤 escutando…"; if (umaVez || Date.now() < armadoAte) setModo("ouvindo"); };
+  rec.onstart = () => { diag("ouvido ligou"); ouvindo = true; if (sempre && !$("ouvi").textContent) $("ouvi").textContent = "🎤 escutando…"; if (umaVez || Date.now() < armadoAte) setModo("ouvindo"); };
   rec.onresult = (ev) => {
     const r = ev.results[ev.results.length - 1];
     const dito = r[0].transcript.trim();
     // Mostra o que ele está entendendo (ajuda a ver se ouviu "Claudinho" direito)
     $("ouvi").textContent = "ouvi: " + dito;
+    if (r.isFinal) diag("ouviu: " + dito);
     clearTimeout(window._limpaOuvi);
     window._limpaOuvi = setTimeout(() => { $("ouvi").textContent = ""; }, 5000);
     const direto = umaVez || Date.now() < armadoAte;
@@ -524,6 +530,7 @@ function escutar() {
     }, ESPERA_PEDIDO + 100);
   };
   rec.onerror = (ev) => {
+    diag("erro do ouvido: " + ev.error);
     if (ev.error !== "no-speech" && ev.error !== "aborted") $("ouvi").textContent = "problema no ouvido: " + ev.error;
     if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
       sempre = false; atualizarBotao();
@@ -531,12 +538,13 @@ function escutar() {
     }
   };
   rec.onend = () => {
+    diag("ouvido desligou");
     ouvindo = false;
     umaVez = false;
     if (modo === "ouvindo") setModo("espera");
     if (sempre && modo === "espera") setTimeout(escutar, 300);
   };
-  try { rec.start(); } catch {}
+  try { rec.start(); } catch (e) { diag("não consegui ligar o ouvido: " + e.message); }
 }
 
 function pararEscuta() {
