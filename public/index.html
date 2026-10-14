@@ -88,7 +88,7 @@
 </head>
 <body>
 <header>
-  <h1>CLAUDINHO<small>cérebro da garagem</small></h1>
+  <h1>CLAUDINHO<small>cérebro da garagem <span id="versao"></span></small></h1>
   <div><div id="relogio">--:--</div><div id="data"></div></div>
 </header>
 
@@ -342,6 +342,7 @@ function aplicar(estado) {
   if (estado.versao != null) {
     if (versaoVista != null && estado.versao !== versaoVista && modo === "espera") return location.reload();
     if (versaoVista == null) versaoVista = estado.versao;
+    $("versao").textContent = "· versão " + estado.versao;
   }
   cronometros = estado.cronometros || [];
   desenharCronometros();
