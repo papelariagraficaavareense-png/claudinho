@@ -583,7 +583,8 @@ $("btn-sempre").addEventListener("click", () => {
 });
 // "Sempre ouvindo" fica lembrado: depois de uma atualização ou de reabrir, ele volta a escutar sozinho.
 try {
-  if (localStorage.getItem("claudinho.sempre") === "1") {
+  // Ligado por padrão: só fica desligado se o chefe desligou de propósito.
+  if (localStorage.getItem("claudinho.sempre") !== "0") {
     sempre = true;
     atualizarBotao();
     if (window.Gravador) Gravador.iniciar().catch(() => {});

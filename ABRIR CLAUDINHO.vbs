@@ -10,7 +10,8 @@ sh.Run "cmd /c node server.js >> data\servidor.log 2>&1", 0, False
 WScript.Sleep 2000
 
 ' Tela inteira, sem barra de endereco nem cara de navegador. Para sair: Alt+F4 (ou F11 volta a janela).
+' Microfone e som liberados sem clique (so neste perfil, que so abre o Claudinho).
 ' Perfil proprio do Edge: assim abre sempre numa janela nova (respeitando a tela cheia)
 ' e a permissao do microfone fica guardada so pro Claudinho.
 perfil = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%\ClaudinhoEdge")
-sh.Run "msedge --app=http://localhost:8770 --start-fullscreen --no-first-run --user-data-dir=""" & perfil & """", 1, False
+sh.Run "msedge --app=http://localhost:8770 --start-fullscreen --no-first-run --use-fake-ui-for-media-stream --autoplay-policy=no-user-gesture-required --user-data-dir=""" & perfil & """", 1, False
