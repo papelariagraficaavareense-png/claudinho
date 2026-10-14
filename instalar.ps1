@@ -6,6 +6,11 @@ $destino = Join-Path $env:USERPROFILE 'Documents\claudinho'
 Write-Host ''
 Write-Host '== Instalando o Claudinho Garagem ==' -ForegroundColor Cyan
 
+if ($env:COMPUTERNAME -eq 'DIEGO') {
+  Write-Host 'Este e o computador da grafica (DIEGO). Rode este comando no NOTEBOOK do Claudinho.' -ForegroundColor Yellow
+  return
+}
+
 Write-Host '1/6 Fechando o Claudinho antigo...'
 Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object { $_.CommandLine -match 'server\.js' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
 Start-Sleep -Seconds 1
@@ -26,8 +31,8 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
 
 Write-Host '4/6 Preparando as pecas do Claudinho (pode levar 1 minuto)...'
 Set-Location $destino
-& npm install --no-audit --no-fund
-if (-not (Get-Command claude -ErrorAction SilentlyContinue)) { & npm install -g @anthropic-ai/claude-code --no-audit --no-fund }
+& npm.cmd install --no-audit --no-fund
+if (-not (Get-Command claude -ErrorAction SilentlyContinue)) { & npm.cmd install -g @anthropic-ai/claude-code --no-audit --no-fund }
 
 Write-Host '5/6 Criando o atalho Claudinho Garagem...'
 $mesa = [Environment]::GetFolderPath('Desktop')
