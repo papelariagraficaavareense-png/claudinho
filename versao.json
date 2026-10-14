@@ -1,5 +1,5 @@
 {
-  "versao": 10,
+  "versao": 11,
   "arquivos": [
     "server.js",
     "package.json",
