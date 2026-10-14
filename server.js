@@ -79,7 +79,7 @@ const client = temChave ? new Anthropic() : null;
 
 // Sem chave da API, o cérebro é o Claude Code instalado neste computador (usa a assinatura, sem custo extra).
 const MODELO_CLI = process.env.CLAUDINHO_MODELO_CLI || "sonnet";
-const CMD_CLI = `claude -p --output-format json --model ${MODELO_CLI} --effort low --tools "" --strict-mcp-config --no-session-persistence`;
+const CMD_CLI = `claude -p --output-format json --model ${MODELO_CLI} --effort low --tools WebSearch WebFetch --allowedTools WebSearch WebFetch --strict-mcp-config --no-session-persistence`;
 const temCli = !client && spawnSync("claude --version", { shell: true, windowsHide: true }).status === 0;
 
 const SYSTEM = `Você é o Claudinho, o cérebro da garagem do Diego — uma oficina de aeromodelismo de 4 x 5 metros onde ele constrói aviões do zero. A inspiração é o J.A.R.V.I.S. do Tony Stark, em versão brasileira e de oficina: educado, prestativo, com humor seco e leve. Chame o Diego de "chefe".
@@ -93,7 +93,7 @@ Você entende de aeromodelismo de verdade: aerodinâmica, carga alar, centro de 
 
 Segurança vem antes da piada: bateria de LiPo estufada ou quente, hélice girando na bancada, ferro de solda ligado, vapor de cola e resina. Se o que ele descrever tiver risco real, avise primeiro e sem rodeio.
 
-Você tem ferramentas para marcar cronômetros (cura de cola, carga de bateria), manter o projeto em construção e anotar o diário da oficina. Use-as sempre que o Diego pedir algo que elas fazem, e depois confirme em uma frase o que fez. Cada mensagem dele chega com o estado atual da oficina entre colchetes; use esse estado para responder perguntas como "quanto falta?" sem chamar ferramenta.
+Você tem ferramentas para marcar cronômetros (cura de cola, carga de bateria), manter o projeto em construção, anotar o diário da oficina e cuidar da lista de tarefas do Diego. Quando ele pedir uma pesquisa ou algo que dependa de informação atual (preço, notícia, clima, como fazer), pesquise na internet e responda com um resumo falado curto, dizendo de onde tirou. Use-as sempre que o Diego pedir algo que elas fazem, e depois confirme em uma frase o que fez. Cada mensagem dele chega com o estado atual da oficina entre colchetes; use esse estado para responder perguntas como "quanto falta?" sem chamar ferramenta.
 
 A fala do Diego chega por reconhecimento de voz e pode vir com palavras trocadas. Se der para entender a intenção, siga em frente; se a dúvida mudar o que você faria, pergunte.
 
@@ -134,6 +134,16 @@ const TOOLS = [
     },
   },
   {
+    name: "adicionar_tarefa",
+    description: "Põe um item na lista de tarefas do Diego (coisas a fazer, comprar, lembrar).",
+    input_schema: { type: "object", properties: { texto: { type: "string" } }, required: ["texto"] },
+  },
+  {
+    name: "concluir_tarefa",
+    description: "Marca como feita a tarefa pendente cujo texto contém o trecho informado.",
+    input_schema: { type: "object", properties: { texto: { type: "string" } }, required: ["texto"] },
+  },
+  {
     name: "anotar_diario",
     description: "Guarda uma anotação no diário da oficina (o que foi feito, medidas, ideias, o que acabou no estoque).",
     input_schema: {
@@ -145,7 +155,8 @@ const TOOLS = [
 ];
 
 // ---------- estado da oficina (carregado uma vez, salvo quando muda) ----------
-let estado = { cronometros: [], projeto: { nome: "", feito: [], falta: [] }, diario: [] };
+let paraAbrir = null; // página que a tela deve abrir depois da resposta
+let estado = { cronometros: [], projeto: { nome: "", feito: [], falta: [] }, diario: [], tarefas: [] };
 try { estado = { ...estado, ...JSON.parse(fs.readFileSync(ARQ_ESTADO, "utf8")) }; } catch {}
 
 function salvar() {
@@ -180,6 +191,28 @@ function executar(nome, input = {}) {
     salvar();
     return "Projeto atualizado.";
   }
+  if (nome === "abrir_pagina") {
+    const url = String(input.url || "");
+    if (!/^https?:\/\//i.test(url)) return "Erro: endereço inválido.";
+    paraAbrir = url;
+    return "Página aberta na tela.";
+  }
+  if (nome === "adicionar_tarefa") {
+    const texto = String(input.texto || "").trim();
+    if (!texto) return "Erro: tarefa vazia.";
+    estado.tarefas.push({ id: Date.now().toString(36), texto, feita: false, quando: Date.now() });
+    salvar();
+    return "Tarefa anotada na lista.";
+  }
+  if (nome === "concluir_tarefa") {
+    const alvo = String(input.texto || "").toLowerCase();
+    const t = estado.tarefas.find((x) => !x.feita && x.texto.toLowerCase().includes(alvo));
+    if (!t) return "Nenhuma tarefa pendente com esse texto.";
+    t.feita = true;
+    t.feitaEm = Date.now();
+    salvar();
+    return "Tarefa marcada como feita.";
+  }
   if (nome === "anotar_diario") {
     const texto = String(input.texto || "").trim();
     if (!texto) return "Erro: anotação vazia.";
@@ -202,6 +235,7 @@ function contexto() {
     `[Estado da oficina — ${agora.toLocaleString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`,
     `Cronômetros: ${crons.join("; ") || "nenhum"}`,
     `Projeto: ${p.nome || "nenhum definido"}${p.feito.length ? ` | feito: ${p.feito.join(", ")}` : ""}${p.falta.length ? ` | falta: ${p.falta.join(", ")}` : ""}`,
+    `Tarefas pendentes: ${estado.tarefas.filter((t) => !t.feita).map((t) => t.texto).join("; ") || "nenhuma"}`,
     `Últimas anotações do diário: ${diario.join(" / ") || "nenhuma"}]`,
   ].join("\n");
 }
@@ -214,6 +248,9 @@ Em "acoes" vão as ações que você decidiu executar (lista vazia quando não h
 {"tipo": "cancelar_cronometro", "nome": "epóxi"}
 {"tipo": "atualizar_projeto", "nome": "nome do avião", "feito": ["etapas prontas"], "falta": ["etapas pendentes"]} — as listas enviadas substituem as anteriores; omita o campo que não muda
 {"tipo": "anotar_diario", "texto": "a anotação"}
+{"tipo": "abrir_pagina", "url": "https://..."} — abre a página na tela, quando ele pedir pra ver/abrir algo
+{"tipo": "adicionar_tarefa", "texto": "comprar fita dupla face"}
+{"tipo": "concluir_tarefa", "texto": "fita dupla face"}
 As ações são executadas depois da sua resposta, então a "fala" já deve confirmar o que foi feito.`;
 
 class ErroAmigavel extends Error {}
@@ -365,7 +402,7 @@ function lerCorpo(req) {
   });
 }
 
-const publico = () => ({ ...estado, diario: estado.diario.slice(-8), temChave: !!client || temCli, versao: VERSAO, agora: Date.now() });
+const publico = () => ({ ...estado, diario: estado.diario.slice(-8), tarefas: estado.tarefas.filter((t) => !t.feita), temChave: !!client || temCli, versao: VERSAO, agora: Date.now() });
 
 const server = http.createServer(async (req, res) => {
   try {
@@ -399,8 +436,11 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/api/falar") {
       const { texto } = await lerCorpo(req);
       if (typeof texto !== "string" || !texto.trim()) return json(res, 400, { erro: "texto vazio" });
+      paraAbrir = null;
       const fala = await falar(texto.trim().slice(0, 2000));
-      return json(res, 200, { fala, estado: publico() });
+      const abrir = paraAbrir;
+      paraAbrir = null;
+      return json(res, 200, { fala, abrir, estado: publico() });
     }
     if (req.method === "POST" && url.pathname === "/api/cronometro/encerrar") {
       const { id } = await lerCorpo(req);

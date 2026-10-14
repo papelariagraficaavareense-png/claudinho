@@ -149,6 +149,8 @@
   <section class="painel" id="painel-proj">
     <h2>Avião em construção</h2>
     <div id="projeto"><div class="vazio">Nenhum projeto ainda. Diga "estou construindo um…".</div></div>
+    <h2>Tarefas</h2>
+    <div id="tarefas"><div class="vazio">Nenhuma. Diga "coloca na lista comprar cola".</div></div>
     <h2>Diário da oficina</h2>
     <div id="diario"><div class="vazio">Sem anotações.</div></div>
   </section>
@@ -334,6 +336,11 @@ function aplicar(estado) {
     projeto.replaceChildren(nome, ul);
   }
 
+  const tarefas = estado.tarefas || [];
+  const ulT = el("ul");
+  tarefas.forEach((t) => ulT.append(el("li", "", t.texto)));
+  $("tarefas").replaceChildren(tarefas.length ? ulT : el("div", "vazio", 'Nenhuma. Diga "coloca na lista comprar cola".'));
+
   const notas = (estado.diario || []).slice().reverse();
   $("diario").replaceChildren(...(notas.length ? notas.map((n) => {
     const nota = el("div", "nota");
@@ -342,7 +349,7 @@ function aplicar(estado) {
   }) : [el("div", "vazio", "Sem anotações.")]));
 
   $("painel-cron").classList.toggle("sem-nada", !cronometros.length);
-  $("painel-proj").classList.toggle("sem-nada", !p.nome && !(p.feito || []).length && !(p.falta || []).length && !notas.length);
+  $("painel-proj").classList.toggle("sem-nada", !p.nome && !(p.feito || []).length && !(p.falta || []).length && !notas.length && !tarefas.length);
 
   avisoEl.textContent = estado.temChave ? "" : "Claudinho sem cérebro: falta instalar o Claude Code neste computador e entrar com a sua conta.";
 }
@@ -429,6 +436,7 @@ async function enviar(texto) {
     const r = await fetch("/api/falar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ texto }) });
     const dados = await r.json();
     if (dados.estado) aplicar(dados.estado);
+    if (dados.abrir) window.open(dados.abrir, "_blank");
     dizer(dados.fala || "Não entendi, chefe.");
   } catch {
     dizer("Não consegui falar com o servidor, chefe.");
