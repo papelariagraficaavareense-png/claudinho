@@ -1,5 +1,5 @@
 {
-  "versao": 9,
+  "versao": 10,
   "arquivos": [
     "server.js",
     "package.json",
@@ -17,6 +17,7 @@
     "voz.js",
     "public/gravador.js",
     "public/voz.html",
-    "CLAUDE REMOTO.bat"
+    "CLAUDE REMOTO.bat",
+    "vigia.bat"
   ]
 }

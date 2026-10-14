@@ -5,8 +5,8 @@ pasta = fs.GetParentFolderName(WScript.ScriptFullName)
 sh.CurrentDirectory = pasta
 If Not fs.FolderExists(pasta & "\data") Then fs.CreateFolder(pasta & "\data")
 
-' Se o servidor ja estiver rodando, este segundo sai sozinho (porta ocupada).
-sh.Run "cmd /c node server.js >> data\servidor.log 2>&1", 0, False
+' Servidor com vigia: se parar, liga de novo sozinho. Se ja estiver rodando, o segundo sai sozinho.
+sh.Run "cmd /c """ & pasta & "\vigia.bat""", 0, False
 WScript.Sleep 2000
 
 ' Tela inteira, sem barra de endereco nem cara de navegador. Para sair: Alt+F4 (ou F11 volta a janela).

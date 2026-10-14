@@ -74,6 +74,8 @@ async function buscarAtualizacao() {
 }
 
 function reiniciar() {
+  // Com o vigia (vigia.bat), basta sair: ele liga de novo já com a versão nova.
+  if (process.env.CLAUDINHO_SUPERVISIONADO) { setTimeout(() => process.exit(0), 300); return; }
   const log = path.join(here, "data", "servidor.log");
   fs.mkdirSync(path.dirname(log), { recursive: true });
   const filho = process.platform === "win32"
@@ -509,6 +511,11 @@ const server = http.createServer(async (req, res) => {
     console.error(e);
     json(res, 500, { erro: "erro interno" });
   }
+});
+
+server.on("error", (e) => {
+  if (e.code === "EADDRINUSE") { console.log("já tem um Claudinho rodando nesta porta"); process.exit(3); }
+  throw e;
 });
 
 server.listen(PORT, "127.0.0.1", () => {
