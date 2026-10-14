@@ -7,6 +7,7 @@ import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
+import { criarVoz } from "./voz.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 try { process.loadEnvFile(path.join(here, ".env")); } catch {}
@@ -14,6 +15,21 @@ try { process.loadEnvFile(path.join(here, ".env")); } catch {}
 const PORT = Number(process.env.PORT) || 8770;
 const MODEL = process.env.CLAUDINHO_MODEL || "claude-opus-5-5";
 const ARQ_ESTADO = path.join(here, "data", "estado.json");
+const voz = criarVoz(path.join(here, "data"));
+voz.preparar().catch((e) => console.error("voz:", e.message)); // já deixa o modelo baixado e carregado
+
+function lerAudio(req) {
+  return new Promise((resolve, reject) => {
+    const partes = [];
+    let total = 0;
+    req.on("data", (c) => { total += c.length; if (total > 8_000_000) req.destroy(); else partes.push(c); });
+    req.on("end", () => {
+      const b = Buffer.concat(partes);
+      resolve(new Float32Array(b.buffer.slice(b.byteOffset, b.byteOffset + b.length - (b.length % 4))));
+    });
+    req.on("error", reject);
+  });
+}
 const MAX_MENSAGENS = 40;
 const PASTA_FIGURINHAS = path.join(here, "public", "figurinhas");
 
@@ -415,6 +431,28 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/claudinho.png") {
       res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "max-age=86400" });
       return fs.createReadStream(path.join(here, "public", "claudinho.png")).pipe(res);
+    }
+    if (req.method === "GET" && url.pathname === "/gravador.js") {
+      res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-store" });
+      return fs.createReadStream(path.join(here, "public", "gravador.js")).pipe(res);
+    }
+    if (req.method === "GET" && url.pathname === "/voz") {
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+      return fs.createReadStream(path.join(here, "public", "voz.html")).pipe(res);
+    }
+    if (req.method === "GET" && url.pathname === "/api/voz") return json(res, 200, voz.estado());
+    if (req.method === "POST" && url.pathname === "/api/voz/apagar") return json(res, 200, voz.apagar());
+    if (req.method === "POST" && (url.pathname === "/api/voz/cadastrar" || url.pathname === "/api/voz/conferir")) {
+      const taxa = Number(url.searchParams.get("taxa")) || 48000;
+      const amostras = await lerAudio(req);
+      if (amostras.length < taxa * 0.4) return json(res, 400, { erro: "áudio curto demais" });
+      try {
+        const r = url.pathname.endsWith("cadastrar") ? await voz.cadastrar(amostras, taxa) : await voz.conferir(amostras, taxa);
+        return json(res, 200, r);
+      } catch (e) {
+        console.error("voz:", e.message);
+        return json(res, 503, { erro: "reconhecimento de voz indisponível", ok: true });
+      }
     }
     if (req.method === "GET" && (url.pathname === "/tarefas" || url.pathname === "/planos")) {
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });

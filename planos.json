@@ -4,57 +4,160 @@
     {
       "nome": "Claudinho",
       "itens": [
-        { "titulo": "Conversar por voz, cronômetros, avião em construção e diário da oficina", "status": "feito" },
-        { "titulo": "Robô animado com a boca acompanhando a fala", "status": "feito" },
-        { "titulo": "Figurinhas e animações do lottiefiles no lugar do robô", "status": "feito" },
-        { "titulo": "Lista de tarefas por voz", "status": "feito" },
-        { "titulo": "Pesquisar na internet e abrir a página na tela", "status": "feito", "obs": "testar no notebook" },
-        { "titulo": "Modo dormindo: tela escurece e o \"hey Claudinho\" acorda", "status": "feito" },
-        { "titulo": "Funcionar pela assinatura, sem custo extra", "status": "feito" },
-        { "titulo": "Atualização automática pelo GitHub", "status": "andamento", "obs": "falta o Diego rodar o comando que cria o repositório" },
-        { "titulo": "Ligar a TV sozinho quando ouvir \"hey Claudinho\"", "status": "pendente", "obs": "falta a marca e o modelo da TV" },
-        { "titulo": "Reconhecer a voz do Diego (só ele comanda alarme e câmeras)", "status": "pendente" },
-        { "titulo": "Tocar música por voz e abaixar quando for falar", "status": "pendente", "obs": "YouTube ou Spotify Premium?" },
-        { "titulo": "Panorama das vendas da gráfica por voz (\"como foi o fim de semana?\")", "status": "pendente", "obs": "consulta só de leitura no CRM, subir às 17:20" },
-        { "titulo": "Voz mais humana", "status": "andamento", "obs": "vozes naturais do Edge; escolher no seletor" }
+        {
+          "titulo": "Conversar por voz, cronômetros, avião em construção e diário da oficina",
+          "status": "feito"
+        },
+        {
+          "titulo": "Robô animado com a boca acompanhando a fala",
+          "status": "feito"
+        },
+        {
+          "titulo": "Figurinhas e animações do lottiefiles no lugar do robô",
+          "status": "feito"
+        },
+        {
+          "titulo": "Lista de tarefas por voz",
+          "status": "feito"
+        },
+        {
+          "titulo": "Pesquisar na internet e abrir a página na tela",
+          "status": "feito",
+          "obs": "testar no notebook"
+        },
+        {
+          "titulo": "Modo dormindo: tela escurece e o \"hey Claudinho\" acorda",
+          "status": "feito"
+        },
+        {
+          "titulo": "Funcionar pela assinatura, sem custo extra",
+          "status": "feito"
+        },
+        {
+          "titulo": "Atualização automática pelo GitHub",
+          "status": "andamento",
+          "obs": "falta o Diego rodar o comando que cria o repositório"
+        },
+        {
+          "titulo": "Ligar a TV sozinho quando ouvir \"hey Claudinho\"",
+          "status": "pendente",
+          "obs": "falta a marca e o modelo da TV"
+        },
+        {
+          "titulo": "Reconhecer a voz do Diego: só ele comanda",
+          "status": "andamento",
+          "obs": "pronto na versão 4: falta o Diego fazer o cadastro em \"Minha voz\""
+        },
+        {
+          "titulo": "Tocar música por voz e abaixar quando for falar",
+          "status": "pendente",
+          "obs": "YouTube ou Spotify Premium?"
+        },
+        {
+          "titulo": "Panorama das vendas da gráfica por voz (\"como foi o fim de semana?\")",
+          "status": "pendente",
+          "obs": "consulta só de leitura no CRM, subir às 17:20"
+        },
+        {
+          "titulo": "Voz mais humana",
+          "status": "andamento",
+          "obs": "vozes naturais do Edge; escolher no seletor"
+        }
       ]
     },
     {
       "nome": "Garagem dos sonhos",
       "itens": [
-        { "titulo": "Planta 4 x 5 m: bancada de montagem, eletrônica, hangar na parede, impressoras 3D, carga de LiPo e mesa móvel", "status": "pendente" },
-        { "titulo": "Notebook do Claudinho + TV na parede da bancada", "status": "andamento" },
-        { "titulo": "Nobreak na garagem (roteador, TV e caixa de som)", "status": "pendente" },
-        { "titulo": "Notebook nunca dormir (Configurações > Energia > Nunca)", "status": "pendente" },
-        { "titulo": "Microfone de mesa pra ouvir de longe", "status": "pendente" }
+        {
+          "titulo": "Planta 4 x 5 m: bancada de montagem, eletrônica, hangar na parede, impressoras 3D, carga de LiPo e mesa móvel",
+          "status": "pendente"
+        },
+        {
+          "titulo": "Notebook do Claudinho + TV na parede da bancada",
+          "status": "andamento"
+        },
+        {
+          "titulo": "Nobreak na garagem (roteador, TV e caixa de som)",
+          "status": "pendente"
+        },
+        {
+          "titulo": "Notebook nunca dormir (Configurações > Energia > Nunca)",
+          "status": "pendente"
+        },
+        {
+          "titulo": "Microfone de mesa pra ouvir de longe",
+          "status": "pendente"
+        }
       ]
     },
     {
       "nome": "Aeromodelismo",
       "itens": [
-        { "titulo": "Engenheiro de bordo: carga alar, CG, motor e hélice", "status": "feito" },
-        { "titulo": "Segurança da LiPo: sensor de temperatura e fumaça que corta a tomada", "status": "pendente" },
-        { "titulo": "Impressoras 3D ligadas no Claudinho (quanto falta, avisar quando terminar)", "status": "pendente" },
-        { "titulo": "Projetor no teto mostrando a planta do avião em tamanho real na bancada", "status": "ideia" },
-        { "titulo": "Drone DJI saindo da garagem pra ronda da casa (dentro das regras da ANAC/DECEA)", "status": "ideia", "obs": "qual drone?" }
+        {
+          "titulo": "Engenheiro de bordo: carga alar, CG, motor e hélice",
+          "status": "feito"
+        },
+        {
+          "titulo": "Segurança da LiPo: sensor de temperatura e fumaça que corta a tomada",
+          "status": "pendente"
+        },
+        {
+          "titulo": "Impressoras 3D ligadas no Claudinho (quanto falta, avisar quando terminar)",
+          "status": "pendente"
+        },
+        {
+          "titulo": "Projetor no teto mostrando a planta do avião em tamanho real na bancada",
+          "status": "ideia"
+        },
+        {
+          "titulo": "Drone DJI saindo da garagem pra ronda da casa (dentro das regras da ANAC/DECEA)",
+          "status": "ideia",
+          "obs": "qual drone?"
+        }
       ]
     },
     {
       "nome": "Casa",
       "itens": [
-        { "titulo": "Câmeras na TV e aviso de movimento", "status": "pendente", "obs": "marcas e modelos" },
-        { "titulo": "Alarme: ligar e desligar por voz e avisar se disparar", "status": "pendente" },
-        { "titulo": "Lâmpadas por voz e horários", "status": "pendente" },
-        { "titulo": "Piscina: bomba, luz e horários", "status": "pendente" },
-        { "titulo": "Backup noturno do CRM e da loja dentro de casa", "status": "pendente" }
+        {
+          "titulo": "Câmeras na TV e aviso de movimento",
+          "status": "pendente",
+          "obs": "marcas e modelos"
+        },
+        {
+          "titulo": "Alarme: ligar e desligar por voz e avisar se disparar",
+          "status": "pendente"
+        },
+        {
+          "titulo": "Lâmpadas por voz e horários",
+          "status": "pendente"
+        },
+        {
+          "titulo": "Piscina: bomba, luz e horários",
+          "status": "pendente"
+        },
+        {
+          "titulo": "Backup noturno do CRM e da loja dentro de casa",
+          "status": "pendente"
+        }
       ]
     },
     {
       "nome": "Gráfica",
       "itens": [
-        { "titulo": "Um mouse e um teclado nos dois computadores", "status": "feito" },
-        { "titulo": "Acesso remoto de casa pro computador da gráfica (Chrome Remote Desktop)", "status": "andamento", "obs": "Diego ativar com a conta Google + PIN" },
-        { "titulo": "Claudinho vigiando o computador da gráfica e avisando se algo parar", "status": "pendente" }
+        {
+          "titulo": "Um mouse e um teclado nos dois computadores",
+          "status": "feito"
+        },
+        {
+          "titulo": "Acesso remoto de casa pro computador da gráfica (Chrome Remote Desktop)",
+          "status": "andamento",
+          "obs": "Diego ativar com a conta Google + PIN"
+        },
+        {
+          "titulo": "Claudinho vigiando o computador da gráfica e avisando se algo parar",
+          "status": "pendente"
+        }
       ]
     }
   ]

@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
-    "lottie-web": "^5.12.2"
+    "lottie-web": "^5.12.2",
+    "sherpa-onnx-node": "^1.13.8"
   }
 }

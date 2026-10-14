@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minha voz</title>
+<link rel="icon" type="image/png" href="/claudinho.png">
+<style>
+  :root { --bg:#070b12; --painel:#0d1420; --borda:#1c2a3d; --texto:#dbe7f5; --fraco:#7b8fa8; --azul:#35c6ff; --verde:#4be3a1; --laranja:#ff9d3c; --vermelho:#ff5d5d; --coral:#f08a5d; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--texto); font-family:"Segoe UI",system-ui,sans-serif; padding:28px 16px 48px; }
+  .tela { max-width:760px; margin:0 auto; }
+  .topo { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
+  h1 { margin:0; font-size:26px; font-weight:600; } h1 span { color:var(--coral); }
+  a.voltar { color:var(--azul); text-decoration:none; border:1px solid var(--borda); border-radius:999px; padding:8px 14px; }
+  .cartao { background:var(--painel); border:1px solid var(--borda); border-radius:16px; padding:22px; margin-bottom:16px; }
+  .situacao { font-size:16px; line-height:1.5; }
+  .situacao b.ok { color:var(--verde); } .situacao b.nao { color:var(--laranja); }
+  .frase { font-size:30px; line-height:1.35; margin:14px 0 6px; min-height:84px; }
+  .dica { color:var(--fraco); font-size:14px; }
+  .passos { display:flex; gap:6px; margin:16px 0; }
+  .passos i { flex:1; height:8px; border-radius:999px; background:#0a111c; border:1px solid var(--borda); }
+  .passos i.feito { background:var(--verde); border-color:var(--verde); }
+  .passos i.agora { background:var(--azul); border-color:var(--azul); }
+  button { background:var(--painel); border:1px solid var(--borda); color:var(--texto); border-radius:12px; padding:14px 20px; font:inherit; font-size:16px; cursor:pointer; }
+  button.principal { background:var(--azul); color:#04121c; border-color:var(--azul); font-weight:600; }
+  button:disabled { opacity:.5; cursor:default; }
+  .linha { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .gravando { color:var(--vermelho); font-weight:600; }
+  .resultado { font-size:18px; margin-top:12px; min-height:28px; }
+  .nivel { height:10px; border-radius:999px; background:#0a111c; border:1px solid var(--borda); overflow:hidden; margin-top:12px; }
+  .nivel i { display:block; height:100%; width:0; background:var(--verde); transition:width .1s; }
+</style>
+</head>
+<body>
+<div class="tela">
+  <div class="topo">
+    <h1>Minha <span>voz</span></h1>
+    <a class="voltar" href="/">← Claudinho</a>
+  </div>
+
+  <div class="cartao">
+    <div class="situacao" id="situacao">Carregando…</div>
+  </div>
+
+  <div class="cartao">
+    <div class="dica">Cadastro: leia cada frase em voz alta, do seu jeito normal, na distância em que você costuma falar com ele.</div>
+    <div class="passos" id="passos"></div>
+    <div class="frase" id="frase">Aperte "Começar cadastro".</div>
+    <div class="dica" id="estadoGravacao">&nbsp;</div>
+    <div class="nivel"><i id="nivel"></i></div>
+    <div class="linha" style="margin-top:16px">
+      <button class="principal" id="btnCadastro" type="button">Começar cadastro</button>
+      <button id="btnTestar" type="button">Testar minha voz</button>
+      <button id="btnApagar" type="button">Apagar cadastro</button>
+    </div>
+    <div class="resultado" id="resultado"></div>
+  </div>
+</div>
+<script src="/gravador.js"></script>
+<script>
+const FRASES = [
+  "Hey Claudinho, tudo bem com você hoje?",
+  "Hey Claudinho, marca trinta minutos da cola.",
+  "Claudinho, coloca na lista comprar fita dupla face.",
+  "Hey Claudinho, como foram as vendas do fim de semana?",
+  "Claudinho, qual é a carga alar de uma asa de um metro e meio?",
+  "Hey Claudinho, pesquisa pra mim a melhor hélice pra esse motor.",
+  "Claudinho, anota no diário que terminei a asa esquerda.",
+  "Hey Claudinho, apaga as luzes da garagem.",
+];
+const $ = (id) => document.getElementById(id);
+let ocupado = false;
+
+async function atualizar() {
+  const e = await fetch("/api/voz").then((r) => r.json());
+  $("situacao").innerHTML = e.cadastrada
+    ? `<b class="ok">Voz cadastrada</b> com ${e.amostras} frases. O Claudinho só obedece a você. (Rigor: ${Math.round(e.limiar * 100)}%)`
+    : `<b class="nao">Voz ainda não cadastrada.</b> Enquanto isso, ele obedece a qualquer voz. ${e.amostras ? `(${e.amostras} de 5 frases mínimas)` : ""}`;
+  if (!e.modeloBaixado) $("situacao").innerHTML += `<div class="dica">Na primeira vez ele baixa a peça de reconhecimento (uns 25 MB); pode levar um minuto.</div>`;
+  return e;
+}
+
+function passos(atual) {
+  $("passos").replaceChildren(...FRASES.map((_, i) => { const p = document.createElement("i"); if (i < atual) p.className = "feito"; else if (i === atual) p.className = "agora"; return p; }));
+}
+
+// mostra o volume do microfone enquanto grava
+let medidor = 0;
+function medir(ligar) {
+  clearInterval(medidor);
+  if (!ligar) { $("nivel").style.width = "0"; return; }
+  medidor = setInterval(() => {
+    const a = Gravador.ultimos(0.3);
+    let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * a[i];
+    const rms = a.length ? Math.sqrt(s / a.length) : 0;
+    $("nivel").style.width = Math.min(100, rms * 600) + "%";
+  }, 120);
+}
+
+async function gravarFrase(texto, segundos) {
+  $("frase").textContent = texto;
+  for (let n = 3; n > 0; n--) { $("estadoGravacao").textContent = `Prepare-se… ${n}`; await new Promise((r) => setTimeout(r, 700)); }
+  $("estadoGravacao").innerHTML = '<span class="gravando">● Gravando — fale agora</span>';
+  medir(true);
+  const audio = await Gravador.gravar(segundos);
+  medir(false);
+  $("estadoGravacao").textContent = "Pronto.";
+  return audio;
+}
+
+$("btnCadastro").onclick = async () => {
+  if (ocupado) return;
+  ocupado = true;
+  $("resultado").textContent = "";
+  try {
+    await Gravador.iniciar();
+    for (let i = 0; i < FRASES.length; i++) {
+      passos(i);
+      const audio = await gravarFrase(FRASES[i], 4.5);
+      if (audio.length < Gravador.taxa * 0.6) { $("resultado").textContent = "Não ouvi direito. Vamos repetir essa frase."; i--; continue; }
+      $("estadoGravacao").textContent = "Guardando…";
+      await Gravador.enviar("/api/voz/cadastrar", audio);
+    }
+    passos(FRASES.length);
+    $("frase").textContent = "Cadastro pronto!";
+    $("resultado").textContent = "Agora aperte \"Testar minha voz\" pra conferir.";
+  } catch (e) {
+    $("resultado").textContent = "Deu problema com o microfone. Libere o microfone pra este endereço e tente de novo.";
+  }
+  ocupado = false;
+  atualizar();
+};
+
+$("btnTestar").onclick = async () => {
+  if (ocupado) return;
+  ocupado = true;
+  try {
+    await Gravador.iniciar();
+    const audio = await gravarFrase("Hey Claudinho, sou eu, o chefe.", 4);
+    const r = await Gravador.enviar("/api/voz/conferir", audio);
+    if (r.semCadastro) $("resultado").textContent = "Ainda falta cadastrar a voz.";
+    else $("resultado").innerHTML = r.ok
+      ? `<b style="color:var(--verde)">É você, chefe!</b> Semelhança ${Math.round(r.nota * 100)}% (precisa de ${Math.round(r.limiar * 100)}%).`
+      : `<b style="color:var(--laranja)">Não reconheci.</b> Semelhança ${Math.round(r.nota * 100)}% (precisa de ${Math.round(r.limiar * 100)}%). Se era você, faça o cadastro de novo, mais perto do microfone.`;
+  } catch {
+    $("resultado").textContent = "Deu problema com o microfone.";
+  }
+  ocupado = false;
+};
+
+$("btnApagar").onclick = async () => {
+  if (ocupado || !confirm("Apagar o cadastro da sua voz? Até cadastrar de novo, ele obedece a qualquer voz.")) return;
+  await fetch("/api/voz/apagar", { method: "POST" });
+  $("resultado").textContent = "Cadastro apagado.";
+  passos(-1);
+  atualizar();
+};
+
+passos(-1);
+atualizar();
+</script>
+</body>
+</html>

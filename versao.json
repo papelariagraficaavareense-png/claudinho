@@ -1,5 +1,5 @@
 {
-  "versao": 3,
+  "versao": 4,
   "arquivos": [
     "server.js",
     "package.json",
@@ -13,6 +13,9 @@
     "INSTALAR NO NOTEBOOK.bat",
     ".env.example",
     "planos.json",
-    "public/planos.html"
+    "public/planos.html",
+    "voz.js",
+    "public/gravador.js",
+    "public/voz.html"
   ]
 }

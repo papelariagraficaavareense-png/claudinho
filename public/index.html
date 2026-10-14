@@ -171,10 +171,12 @@
   <button id="btn-falar" type="button">Falar (espaço)</button>
   <button id="btn-sempre" type="button" title="Fica ouvindo e responde quando você disser Claudinho">Sempre ouvindo: não</button>
   <button type="button" onclick="location.href='/tarefas'">Tarefas</button>
+  <button type="button" onclick="location.href='/voz'">Minha voz</button>
   <select id="voz" title="Voz do Claudinho (as com estrela são as naturais)" aria-label="Voz do Claudinho" hidden></select>
   <input id="texto" type="text" placeholder="…ou escreva aqui e aperte Enter" autocomplete="off">
 </footer>
 
+<script src="/gravador.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const orbe = $("orbe"), statusEl = $("status"), voceEl = $("voce"), falaEl = $("fala"), avisoEl = $("aviso");
@@ -485,8 +487,22 @@ function escutar() {
     const direto = umaVez || Date.now() < armadoAte;
     if (direto || CHAMADO.test(dito)) { voceEl.textContent = "Você: " + dito; setModo("ouvindo"); }
     if (!r.isFinal) return;
+    if (!direto && !CHAMADO.test(dito)) return;
+    // Antes de obedecer, confere se a voz é a do chefe. Outra voz: ignora em silêncio.
+    vozDoChefe().then((ok) => {
+      if (!ok) {
+        umaVez = false; armadoAte = 0;
+        voceEl.textContent = "";
+        statusEl.textContent = "voz não reconhecida";
+        setModo("espera");
+        setTimeout(() => { if (modo === "espera") statusEl.textContent = ROTULOS.espera; }, 2500);
+        return;
+      }
+      agirSobreFala(dito, direto);
+    });
+  };
+  const agirSobreFala = (dito, direto) => {
     if (direto) { umaVez = false; armadoAte = 0; return enviar(dito); }
-    if (!CHAMADO.test(dito)) return;
     const pedido = dito.replace(CHAMADO, "").trim();
     if (pedido.length > 2) { bip(SOM_ACORDOU); return enviar(pedido); }
     // Só o chamado: toca o bip e espera o pedido na próxima frase.
@@ -520,11 +536,26 @@ function pararEscuta() {
   if (rec && ouvindo) { rec.onend = () => { ouvindo = false; }; try { rec.abort(); } catch {} ouvindo = false; }
 }
 
+// Confere os últimos segundos falados contra a voz cadastrada.
+// Sem cadastro, sem microfone liberado ou com o reconhecimento fora do ar, não trava o chefe.
+async function vozDoChefe() {
+  if (!window.Gravador || !Gravador.ativo) return true;
+  try {
+    const trecho = Gravador.ultimos(6);
+    if (trecho.length < Gravador.taxa * 0.4) return true;
+    const r = await Gravador.enviar("/api/voz/conferir", trecho);
+    return r.ok !== false;
+  } catch {
+    return true;
+  }
+}
+
 function apertarFalar() {
   if (modo === "falando") { sintese.cancel(); setModo("espera"); }
   if (modo === "pensando") return;
   pararEscuta();
   bip(SOM_ACORDOU);
+  if (window.Gravador) Gravador.iniciar().catch(() => {});
   umaVez = true;
   escutar();
 }
@@ -537,10 +568,21 @@ function atualizarBotao() {
 $("btn-falar").addEventListener("click", apertarFalar);
 $("btn-sempre").addEventListener("click", () => {
   sempre = !sempre;
+  try { localStorage.setItem("claudinho.sempre", sempre ? "1" : "0"); } catch {}
   atualizarBotao();
   if (sempre) bip(SOM_ACORDOU);
+  if (sempre && window.Gravador) Gravador.iniciar().catch(() => {});
   if (sempre) escutar(); else pararEscuta();
 });
+// "Sempre ouvindo" fica lembrado: depois de uma atualização ou de reabrir, ele volta a escutar sozinho.
+try {
+  if (localStorage.getItem("claudinho.sempre") === "1") {
+    sempre = true;
+    atualizarBotao();
+    if (window.Gravador) Gravador.iniciar().catch(() => {});
+    setTimeout(escutar, 800);
+  }
+} catch {}
 $("texto").addEventListener("keydown", (ev) => {
   if (ev.key !== "Enter") return;
   const t = ev.target.value;
