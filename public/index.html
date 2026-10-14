@@ -57,6 +57,7 @@
   #orbe.pensando .pontos circle:nth-child(3) { animation-delay:.3s; }
   #orbe.falando .peito { animation:pulsaLuz .5s ease-in-out infinite; }
   #status { font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--fraco); }
+  #ouvi { font-size:13px; color:var(--fraco); min-height:18px; opacity:.8; }
   #voce { color:var(--fraco); font-size:16px; min-height:22px; max-width:90%; }
   #fala { font-size:22px; line-height:1.45; max-width:92%; min-height:64px; }
   #aviso { color:var(--laranja); font-size:14px; max-width:90%; }
@@ -152,6 +153,7 @@
       </svg>
     </div>
     <div id="status" role="status">em espera</div>
+    <div id="ouvi"></div>
     <div id="voce"></div>
     <div id="fala">Oi, chefe. Aperte Falar ou a barra de espaço.</div>
     <div id="aviso"></div>
@@ -480,10 +482,14 @@ function escutar() {
   rec.lang = "pt-BR";
   rec.interimResults = true;
   rec.continuous = sempre && !umaVez;
-  rec.onstart = () => { ouvindo = true; if (umaVez || Date.now() < armadoAte) setModo("ouvindo"); };
+  rec.onstart = () => { ouvindo = true; if (sempre && !$("ouvi").textContent) $("ouvi").textContent = "🎤 escutando…"; if (umaVez || Date.now() < armadoAte) setModo("ouvindo"); };
   rec.onresult = (ev) => {
     const r = ev.results[ev.results.length - 1];
     const dito = r[0].transcript.trim();
+    // Mostra o que ele está entendendo (ajuda a ver se ouviu "Claudinho" direito)
+    $("ouvi").textContent = "ouvi: " + dito;
+    clearTimeout(window._limpaOuvi);
+    window._limpaOuvi = setTimeout(() => { $("ouvi").textContent = ""; }, 5000);
     const direto = umaVez || Date.now() < armadoAte;
     if (direto || CHAMADO.test(dito)) { voceEl.textContent = "Você: " + dito; setModo("ouvindo"); }
     if (!r.isFinal) return;
@@ -518,6 +524,7 @@ function escutar() {
     }, ESPERA_PEDIDO + 100);
   };
   rec.onerror = (ev) => {
+    if (ev.error !== "no-speech" && ev.error !== "aborted") $("ouvi").textContent = "problema no ouvido: " + ev.error;
     if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
       sempre = false; atualizarBotao();
       avisoEl.textContent = "O navegador bloqueou o microfone. Libere o microfone para este endereço.";
