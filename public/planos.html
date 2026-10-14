@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tarefas do Claudinho</title>
+<link rel="icon" type="image/png" href="/claudinho.png">
+<style>
+  :root {
+    --bg:#070b12; --painel:#0d1420; --painel2:#111b2b; --borda:#1c2a3d; --texto:#dbe7f5; --fraco:#7b8fa8;
+    --azul:#35c6ff; --laranja:#ff9d3c; --verde:#4be3a1; --coral:#f08a5d; --roxo:#a78bfa;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--texto); font-family:"Segoe UI",system-ui,sans-serif; padding:28px 16px 56px; }
+  .tela { max-width:1240px; margin:0 auto; }
+
+  .topo { display:grid; grid-template-columns:auto 1fr auto; gap:24px; align-items:center; background:linear-gradient(135deg,#132238,#0d1420 60%); border:1px solid var(--borda); border-radius:18px; padding:22px 26px; margin-bottom:18px; }
+  .robo { width:84px; height:84px; }
+  h1 { margin:0; font-size:26px; font-weight:600; letter-spacing:.06em; }
+  h1 span { color:var(--coral); }
+  .sub { color:var(--fraco); margin-top:4px; font-size:14px; }
+  .barra { height:10px; background:#0a111c; border-radius:999px; overflow:hidden; margin-top:14px; border:1px solid var(--borda); }
+  .barra i { display:block; height:100%; background:linear-gradient(90deg,var(--verde),var(--azul)); border-radius:999px; transition:width 1s; }
+  .anel { position:relative; width:96px; height:96px; }
+  .anel svg { transform:rotate(-90deg); }
+  .anel b { position:absolute; inset:0; display:grid; place-items:center; font-size:22px; font-weight:600; }
+
+  .contas { display:flex; gap:10px; flex-wrap:wrap; margin:0 0 18px; }
+  .filtro { cursor:pointer; background:var(--painel); border:1px solid var(--borda); color:var(--texto); border-radius:999px; padding:8px 14px; font:inherit; font-size:14px; display:flex; gap:8px; align-items:center; }
+  .filtro:hover { border-color:var(--azul); }
+  .filtro.ativo { background:var(--painel2); border-color:var(--azul); }
+  .filtro em { font-style:normal; font-weight:600; }
+  .ponto { width:9px; height:9px; border-radius:50%; display:inline-block; }
+
+  .grade { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:16px; }
+  .grupo { background:var(--painel); border:1px solid var(--borda); border-radius:16px; padding:18px; }
+  .grupo.destaque { border-color:#2b4a6b; background:linear-gradient(180deg,#10233a,#0d1420); }
+  .cab { display:flex; align-items:center; gap:12px; margin-bottom:6px; }
+  .icone { width:40px; height:40px; border-radius:12px; display:grid; place-items:center; font-size:22px; background:#0a111c; border:1px solid var(--borda); }
+  .cab h2 { margin:0; font-size:17px; font-weight:600; flex:1; }
+  .cab small { color:var(--fraco); font-size:13px; }
+  .mini { height:6px; background:#0a111c; border-radius:999px; overflow:hidden; margin:8px 0 10px; }
+  .mini i { display:block; height:100%; background:var(--verde); border-radius:999px; }
+
+  .item { display:flex; gap:12px; align-items:flex-start; padding:10px 4px; border-top:1px solid var(--borda); }
+  .caixa { flex:none; width:22px; height:22px; border-radius:7px; border:2px solid currentColor; display:grid; place-items:center; font-size:13px; font-weight:700; margin-top:1px; }
+  .feito { color:var(--verde); } .andamento { color:var(--azul); } .pendente { color:var(--laranja); } .ideia { color:var(--roxo); } .voz { color:var(--coral); }
+  .caixa.feito { background:var(--verde); color:#06281a; }
+  .titulo { font-size:15px; line-height:1.45; }
+  .item.ok .titulo { color:var(--fraco); text-decoration:line-through; text-decoration-color:#3b5068; }
+  .obs { font-size:13px; color:var(--fraco); margin-top:3px; }
+  .selo { font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; margin-left:6px; }
+  .vazio { color:var(--fraco); font-size:14px; padding:10px 4px; border-top:1px solid var(--borda); }
+  .voltar { color:var(--azul); text-decoration:none; font-size:14px; border:1px solid var(--borda); border-radius:999px; padding:8px 14px; white-space:nowrap; }
+  .voltar:hover { border-color:var(--azul); }
+  @media (max-width:700px) { .topo { grid-template-columns:1fr; text-align:center; } .robo, .anel { margin:0 auto; } }
+</style>
+</head>
+<body>
+<div class="tela">
+  <div class="topo">
+    <svg class="robo" viewBox="0 0 120 120" aria-hidden="true">
+      <ellipse cx="42" cy="16" rx="18" ry="4" fill="#ffd23f"/><ellipse cx="78" cy="16" rx="18" ry="4" fill="#ffd23f"/>
+      <rect x="57" y="16" width="6" height="14" rx="2" fill="#8a93a6"/><circle cx="60" cy="16" r="5" fill="#f08a5d"/>
+      <rect x="18" y="28" width="84" height="76" rx="26" fill="#f08a5d"/>
+      <rect x="28" y="40" width="64" height="50" rx="16" fill="#0f1a2a"/>
+      <rect x="41" y="54" width="12" height="16" rx="6" fill="#5ff0ff"/><rect x="67" y="54" width="12" height="16" rx="6" fill="#5ff0ff"/>
+      <path d="M48 78 Q60 86 72 78" stroke="#5ff0ff" stroke-width="4" fill="none" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <h1>Tarefas do <span>Claudinho</span></h1>
+      <div class="sub" id="sub">carregando…</div>
+      <div class="barra"><i id="barra" style="width:0"></i></div>
+    </div>
+    <div style="display:flex;gap:16px;align-items:center">
+      <div class="anel">
+        <svg width="96" height="96" viewBox="0 0 96 96"><circle cx="48" cy="48" r="40" stroke="#1c2a3d" stroke-width="9" fill="none"/><circle id="arco" cx="48" cy="48" r="40" stroke="#4be3a1" stroke-width="9" fill="none" stroke-linecap="round" stroke-dasharray="251.3" stroke-dashoffset="251.3" style="transition:stroke-dashoffset 1s"/></svg>
+        <b id="pct">0%</b>
+      </div>
+      <a class="voltar" href="/">← Claudinho</a>
+    </div>
+  </div>
+
+  <div class="contas" id="filtros"></div>
+  <div class="grade" id="grade"></div>
+</div>
+<script>
+const ICONES = { "Lista do dia": "🗒️", "Claudinho": "🤖", "Garagem dos sonhos": "🛠️", "Aeromodelismo": "✈️", "Casa": "🏠", "Gráfica": "🖨️" };
+const STATUS = [
+  { id: "todos", nome: "Tudo", cor: "var(--texto)" },
+  { id: "pendente", nome: "A fazer", cor: "var(--laranja)" },
+  { id: "andamento", nome: "Em andamento", cor: "var(--azul)" },
+  { id: "feito", nome: "Feito", cor: "var(--verde)" },
+  { id: "ideia", nome: "Ideias", cor: "var(--roxo)" },
+];
+const MARCA = { feito: "✓", andamento: "…", pendente: "", ideia: "?", voz: "" };
+let dados = null, filtro = "todos";
+try { filtro = localStorage.getItem("claudinho.filtro") || "todos"; } catch {}
+
+function el(tag, classe, texto) { const e = document.createElement(tag); if (classe) e.className = classe; if (texto != null) e.textContent = texto; return e; }
+
+function desenhar() {
+  const grupos = [];
+  if (dados.tarefas && dados.tarefas.length) {
+    grupos.push({ nome: "Lista do dia", destaque: true, itens: dados.tarefas.map((t) => ({ titulo: t.texto, status: "pendente", voz: true, obs: "anotada pela voz" })) });
+  }
+  grupos.push(...dados.grupos);
+  const todos = dados.grupos.flatMap((g) => g.itens);
+  const conta = (s) => todos.filter((i) => i.status === s).length;
+  const pct = todos.length ? Math.round(((conta("feito") + conta("andamento") * 0.5) / todos.length) * 100) : 0;
+
+  document.getElementById("sub").textContent = `${todos.length} itens na estrutura · ${conta("feito")} feitos · ${conta("andamento")} em andamento · atualizado em ${dados.atualizado.split("-").reverse().join("/")}`;
+  document.getElementById("barra").style.width = pct + "%";
+  document.getElementById("arco").style.strokeDashoffset = String(251.3 * (1 - pct / 100));
+  document.getElementById("pct").textContent = pct + "%";
+
+  const filtros = document.getElementById("filtros");
+  filtros.replaceChildren(...STATUS.map((s) => {
+    const b = el("button", "filtro" + (filtro === s.id ? " ativo" : ""));
+    b.type = "button";
+    const p = el("span", "ponto"); p.style.background = s.cor;
+    b.append(p, document.createTextNode(s.nome + " "), el("em", "", String(s.id === "todos" ? todos.length : conta(s.id))));
+    b.onclick = () => { filtro = s.id; try { localStorage.setItem("claudinho.filtro", filtro); } catch {} desenhar(); };
+    return b;
+  }));
+
+  const grade = document.getElementById("grade");
+  grade.replaceChildren(...grupos.map((g) => {
+    const c = el("section", "grupo" + (g.destaque ? " destaque" : ""));
+    const feitos = g.itens.filter((i) => i.status === "feito").length;
+    const cab = el("div", "cab");
+    cab.append(el("div", "icone", ICONES[g.nome] || "•"), el("h2", "", g.nome), el("small", "", `${feitos}/${g.itens.length}`));
+    const mini = el("div", "mini"); const m = el("i"); m.style.width = (g.itens.length ? (feitos / g.itens.length) * 100 : 0) + "%"; mini.append(m);
+    c.append(cab, mini);
+    const visiveis = g.itens.filter((i) => filtro === "todos" || i.status === filtro);
+    if (!visiveis.length) c.append(el("div", "vazio", "Nada aqui nesse filtro."));
+    for (const i of visiveis) {
+      const linha = el("div", "item" + (i.status === "feito" ? " ok" : ""));
+      const tipo = i.voz ? "voz" : i.status;
+      const caixa = el("span", "caixa " + tipo, MARCA[tipo]);
+      const txt = el("div");
+      const t = el("div", "titulo", i.titulo);
+      if (!i.voz && i.status !== "feito") t.append(el("span", "selo " + i.status, STATUS.find((s) => s.id === i.status)?.nome || i.status));
+      txt.append(t);
+      if (i.obs) txt.append(el("div", "obs", i.obs));
+      linha.append(caixa, txt);
+      c.append(linha);
+    }
+    return c;
+  }));
+}
+
+function carregar() {
+  fetch("/api/planos").then((r) => r.json()).then((p) => { dados = p; desenhar(); })
+    .catch(() => { document.getElementById("sub").textContent = "Não consegui carregar as tarefas."; });
+}
+carregar();
+setInterval(carregar, 15000);
+</script>
+</body>
+</html>

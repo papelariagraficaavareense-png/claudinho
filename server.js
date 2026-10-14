@@ -93,7 +93,7 @@ Você entende de aeromodelismo de verdade: aerodinâmica, carga alar, centro de 
 
 Segurança vem antes da piada: bateria de LiPo estufada ou quente, hélice girando na bancada, ferro de solda ligado, vapor de cola e resina. Se o que ele descrever tiver risco real, avise primeiro e sem rodeio.
 
-Você tem ferramentas para marcar cronômetros (cura de cola, carga de bateria), manter o projeto em construção, anotar o diário da oficina e cuidar da lista de tarefas do Diego. Quando ele pedir uma pesquisa ou algo que dependa de informação atual (preço, notícia, clima, como fazer), pesquise na internet e responda com um resumo falado curto, dizendo de onde tirou. Use-as sempre que o Diego pedir algo que elas fazem, e depois confirme em uma frase o que fez. Cada mensagem dele chega com o estado atual da oficina entre colchetes; use esse estado para responder perguntas como "quanto falta?" sem chamar ferramenta.
+Você tem ferramentas para marcar cronômetros (cura de cola, carga de bateria), manter o projeto em construção, anotar o diário da oficina e cuidar da lista de tarefas do Diego. Quando ele pedir uma pesquisa ou algo que dependa de informação atual (preço, notícia, clima, como fazer), pesquise na internet e responda com um resumo falado curto, dizendo de onde tirou. A estrutura completa do que o Diego quer montar (Claudinho, garagem, aeromodelismo, casa e gráfica) está na tela de Tarefas, em http://localhost:8770/tarefas; quando ele pedir pra ver as tarefas, os planos ou o que falta, abra essa página e resuma o que está em andamento. Use-as sempre que o Diego pedir algo que elas fazem, e depois confirme em uma frase o que fez. Cada mensagem dele chega com o estado atual da oficina entre colchetes; use esse estado para responder perguntas como "quanto falta?" sem chamar ferramenta.
 
 A fala do Diego chega por reconhecimento de voz e pode vir com palavras trocadas. Se der para entender a intenção, siga em frente; se a dúvida mudar o que você faria, pergunte.
 
@@ -235,6 +235,7 @@ function contexto() {
     `[Estado da oficina — ${agora.toLocaleString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`,
     `Cronômetros: ${crons.join("; ") || "nenhum"}`,
     `Projeto: ${p.nome || "nenhum definido"}${p.feito.length ? ` | feito: ${p.feito.join(", ")}` : ""}${p.falta.length ? ` | falta: ${p.falta.join(", ")}` : ""}`,
+    `Planos em aberto: ${(() => { try { return JSON.parse(fs.readFileSync(path.join(here, "planos.json"), "utf8")).grupos.flatMap((g) => g.itens.filter((i) => i.status !== "feito").map((i) => g.nome + ": " + i.titulo)).join("; "); } catch { return "nenhum"; } })()}`,
     `Tarefas pendentes: ${estado.tarefas.filter((t) => !t.feita).map((t) => t.texto).join("; ") || "nenhuma"}`,
     `Últimas anotações do diário: ${diario.join(" / ") || "nenhuma"}]`,
   ].join("\n");
@@ -414,6 +415,15 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/claudinho.png") {
       res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "max-age=86400" });
       return fs.createReadStream(path.join(here, "public", "claudinho.png")).pipe(res);
+    }
+    if (req.method === "GET" && (url.pathname === "/tarefas" || url.pathname === "/planos")) {
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+      return fs.createReadStream(path.join(here, "public", "planos.html")).pipe(res);
+    }
+    if (req.method === "GET" && url.pathname === "/api/planos") {
+      let planos = { grupos: [] };
+      try { planos = JSON.parse(fs.readFileSync(path.join(here, "planos.json"), "utf8")); } catch {}
+      return json(res, 200, { ...planos, tarefas: estado.tarefas.filter((t) => !t.feita) });
     }
     if (req.method === "GET" && url.pathname === "/lib/lottie.min.js") {
       res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "max-age=86400" });

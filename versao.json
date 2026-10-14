@@ -11,6 +11,8 @@
     "ABRIR CLAUDINHO.vbs",
     "INICIAR CLAUDINHO.bat",
     "INSTALAR NO NOTEBOOK.bat",
-    ".env.example"
+    ".env.example",
+    "planos.json",
+    "public/planos.html"
   ]
 }
