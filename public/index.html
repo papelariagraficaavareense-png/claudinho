@@ -66,6 +66,16 @@
   body.limpo { cursor:none; }
   /* Painel vazio não aparece (no lugar dele fica só espaço) */
   .painel.sem-nada { visibility:hidden; }
+  /* Dormindo: sem uso por um tempo, a tela escurece e o robô fecha os olhos; "hey Claudinho" acorda */
+  header, main, footer { transition:filter 1.2s; }
+  body.dormindo header, body.dormindo .painel, body.dormindo #status, body.dormindo #fala, body.dormindo #voce { filter:brightness(.15); }
+  body.dormindo #orbe .olho { animation:none; transform:scaleY(.12); }
+  body.dormindo #orbe .flutua { animation-duration:6s; }
+  #orbe .zzz text { opacity:0; font:700 22px "Segoe UI",sans-serif; fill:#8fd3ff; }
+  @keyframes zzz { 0% { opacity:0; transform:translate(0,0); } 30% { opacity:.9; } 100% { opacity:0; transform:translate(14px,-30px); } }
+  body.dormindo #orbe .zzz text { animation:zzz 3s ease-out infinite; }
+  body.dormindo #orbe .zzz text:nth-child(2) { animation-delay:1s; }
+  body.dormindo #orbe .zzz text:nth-child(3) { animation-delay:2s; }
   footer input[type=text] { flex:1; background:var(--painel); border:1px solid var(--borda); color:var(--texto); border-radius:10px; padding:12px 14px; font:inherit; font-size:16px; }
   footer input[type=text]:focus { outline:2px solid var(--azul); outline-offset:-1px; }
   button { background:var(--painel); border:1px solid var(--borda); color:var(--texto); border-radius:10px; padding:12px 18px; font:inherit; font-size:15px; cursor:pointer; white-space:nowrap; }
@@ -133,6 +143,7 @@
           <rect x="90" y="234" width="120" height="62" rx="26" fill="url(#casco)"/>
           <circle class="luz peito" cx="150" cy="264" r="11"/>
         </g>
+        <g class="zzz"><text x="236" y="76">z</text><text x="246" y="66">z</text><text x="256" y="56">Z</text></g>
         <g class="pontos">
           <circle cx="236" cy="62" r="7" fill="#ffd23f"/>
           <circle cx="256" cy="52" r="7" fill="#ffd23f"/>
@@ -259,7 +270,18 @@ function animarBoca(agora) {
 }
 requestAnimationFrame(animarBoca);
 
+const DORMIR_DEPOIS = 5 * 60_000; // 5 minutos sem uso
+let ultimoUso = Date.now();
+function acordar() {
+  ultimoUso = Date.now();
+  document.body.classList.remove("dormindo");
+}
+setInterval(() => {
+  if (modo === "espera" && Date.now() - ultimoUso > DORMIR_DEPOIS) document.body.classList.add("dormindo");
+}, 10_000);
+
 function setModo(m) {
+  acordar();
   modo = m;
   orbe.className = m === "espera" ? "" : m;
   mostrarFigurinha();
@@ -529,6 +551,7 @@ document.addEventListener("keydown", (ev) => {
 
 let tempoControles = 0;
 function mostrarControles() {
+  acordar();
   document.body.classList.remove("limpo");
   clearTimeout(tempoControles);
   tempoControles = setTimeout(() => {
