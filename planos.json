@@ -61,6 +61,11 @@
           "titulo": "Voz mais humana",
           "status": "andamento",
           "obs": "vozes naturais do Edge; escolher no seletor"
+        },
+        {
+          "titulo": "Ouvido offline dentro do notebook (sem internet, sem navegador) e voz bem humana",
+          "status": "pendente",
+          "obs": "hoje usa o ouvido do Chrome (Google)"
         }
       ]
     },
@@ -86,6 +91,11 @@
         {
           "titulo": "Microfone de mesa pra ouvir de longe",
           "status": "pendente"
+        },
+        {
+          "titulo": "TV da garagem vira smart TV pelo Claudinho (YouTube, Netflix, Spotify por voz)",
+          "status": "ideia",
+          "obs": "só serviços oficiais; ou Chromecast com Google TV"
         }
       ]
     },
