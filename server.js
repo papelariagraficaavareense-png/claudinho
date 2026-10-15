@@ -8,6 +8,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 import { criarVoz } from "./voz.js";
+import { criarOuvido } from "./ouvido.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 try { process.loadEnvFile(path.join(here, ".env")); } catch {}
@@ -17,6 +18,8 @@ const MODEL = process.env.CLAUDINHO_MODEL || "claude-opus-5-5";
 const ARQ_ESTADO = path.join(here, "data", "estado.json");
 const voz = criarVoz(path.join(here, "data"));
 voz.preparar().catch((e) => console.error("voz:", e.message)); // já deixa o modelo baixado e carregado
+const ouvido = criarOuvido(path.join(here, "data"));
+ouvido.preparar().then(() => console.log("ouvido próprio pronto")).catch((e) => console.error("ouvido:", e.message));
 
 function lerAudio(req) {
   return new Promise((resolve, reject) => {
@@ -531,6 +534,22 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { ok: true });
     }
     if (req.method === "GET" && url.pathname === "/api/diag") return json(res, 200, diagnostico);
+    if (req.method === "GET" && url.pathname === "/api/ouvido") return json(res, 200, { pronto: ouvido.pronto });
+    // Ouvido próprio: recebe o trecho falado, devolve o texto e se a voz é a do chefe
+    if (req.method === "POST" && url.pathname === "/api/ouvir") {
+      const taxa = Number(url.searchParams.get("taxa")) || 48000;
+      const amostras = await lerAudio(req);
+      if (amostras.length < taxa * 0.3) return json(res, 400, { erro: "áudio curto demais" });
+      try {
+        const texto = await ouvido.transcrever(amostras, taxa);
+        let conferencia = { ok: true };
+        if (texto) { try { conferencia = await voz.conferir(amostras, taxa); } catch { conferencia = { ok: true } } }
+        return json(res, 200, { texto, voz: conferencia });
+      } catch (e) {
+        console.error("ouvido:", e.message);
+        return json(res, 503, { erro: "ouvido indisponível" });
+      }
+    }
     if (req.method === "GET" && url.pathname === "/api/voz") return json(res, 200, voz.estado());
     if (req.method === "POST" && url.pathname === "/api/voz/apagar") return json(res, 200, voz.apagar());
     if (req.method === "POST" && (url.pathname === "/api/voz/cadastrar" || url.pathname === "/api/voz/conferir")) {

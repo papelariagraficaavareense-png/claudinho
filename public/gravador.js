@@ -80,5 +80,21 @@ window.Gravador = (() => {
     return m;
   }
 
-  return { iniciar, ultimos, gravar, enviar, pico, get estadoAudio() { return ctx ? ctx.state : "sem áudio"; }, get taxa() { return taxa; }, get ativo() { return ativo && ctx && ctx.state === "running"; } };
+  // Áudio bruto entre dois instantes (performance.now), sem cortar silêncio.
+  function trecho(de, ate) {
+    const partes = pedacos.filter((p) => p.t >= de && p.t <= ate + 100).map((p) => p.d);
+    const out = new Float32Array(partes.reduce((s, p) => s + p.length, 0));
+    let o = 0;
+    for (const p of partes) { out.set(p, o); o += p.length; }
+    return out;
+  }
+  // Volume (RMS) dos últimos N segundos
+  function volume(seg) {
+    const a = juntar(performance.now() - seg * 1000);
+    let s = 0;
+    for (let i = 0; i < a.length; i++) s += a[i] * a[i];
+    return a.length ? Math.sqrt(s / a.length) : 0;
+  }
+
+  return { iniciar, ultimos, gravar, enviar, pico, trecho, volume, get estadoAudio() { return ctx ? ctx.state : "sem áudio"; }, get taxa() { return taxa; }, get ativo() { return ativo && ctx && ctx.state === "running"; } };
 })();

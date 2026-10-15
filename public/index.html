@@ -470,6 +470,16 @@ async function enviar(texto) {
   pararEscuta();
   voceEl.textContent = "Você: " + texto;
   setModo("pensando");
+  // Enquanto o cérebro trabalha, ele avisa que está pensando (sem mudar o estado da tela)
+  if (sintese) {
+    const frases = ["Estou processando, senhor Diego.", "Só um instante, chefe.", "Deixa comigo, chefe.", "Já vejo isso pra você."];
+    const u = new SpeechSynthesisUtterance(frases[Math.floor(Math.random() * frases.length)]);
+    u.lang = "pt-BR";
+    if (voz) u.voice = voz;
+    u.rate = 1.05;
+    sintese.cancel();
+    sintese.speak(u);
+  }
   try {
     const r = await fetch("/api/falar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ texto }) });
     const dados = await r.json();
@@ -491,6 +501,7 @@ function diag(evento) {
 
 function escutar() {
   diag("escutar() sempre=" + sempre + " modo=" + modo + " ouvindo=" + ouvindo + " temReconhecimento=" + !!Reconhecimento);
+  if (ouvidoProprio) { ouvindo = true; if (umaVez) setModo("ouvindo"); return; }
   if (!Reconhecimento) { avisoEl.textContent = "Este navegador não tem reconhecimento de voz. Use o Chrome ou o Edge."; return; }
   if (ouvindo || modo === "pensando" || modo === "falando") return;
   rec = new Reconhecimento();
@@ -523,24 +534,6 @@ function escutar() {
       agirSobreFala(dito, direto);
     });
   };
-  const agirSobreFala = (dito, direto) => {
-    if (direto) { umaVez = false; armadoAte = 0; return enviar(dito); }
-    // O pedido é o que vem DEPOIS do chamado (o que veio antes costuma ser o "hey" mal entendido)
-    const achado = dito.match(CHAMADO);
-    const pedido = (achado ? dito.slice(achado.index + achado[0].length) : dito).trim();
-    if (pedido.length > 2) { bip(SOM_ACORDOU); return enviar(pedido); }
-    // Só o chamado: toca o bip e espera o pedido na próxima frase.
-    armadoAte = Date.now() + ESPERA_PEDIDO;
-    bip(SOM_ACORDOU);
-    voceEl.textContent = "";
-    falaEl.textContent = "Pois não, chefe?";
-    setModo("ouvindo");
-    setTimeout(() => {
-      if (modo !== "ouvindo" || Date.now() < armadoAte) return;
-      bip(SOM_DESISTIU);
-      setModo("espera");
-    }, ESPERA_PEDIDO + 100);
-  };
   rec.onerror = (ev) => {
     diag("erro do ouvido: " + ev.error);
     if (ev.error !== "no-speech" && ev.error !== "aborted") $("ouvi").textContent = "problema no ouvido: " + ev.error;
@@ -559,7 +552,27 @@ function escutar() {
   try { rec.start(); } catch (e) { diag("não consegui ligar o ouvido: " + e.message); }
 }
 
+function agirSobreFala(dito, direto) {
+  if (direto) { umaVez = false; armadoAte = 0; return enviar(dito); }
+  // O pedido é o que vem DEPOIS do chamado (o que veio antes costuma ser o "hey" mal entendido)
+  const achado = dito.match(CHAMADO);
+  const pedido = (achado ? dito.slice(achado.index + achado[0].length) : dito).trim();
+  if (pedido.length > 2) { bip(SOM_ACORDOU); return enviar(pedido); }
+  // Só o chamado: toca o bip e espera o pedido na próxima frase.
+  armadoAte = Date.now() + ESPERA_PEDIDO;
+  bip(SOM_ACORDOU);
+  voceEl.textContent = "";
+  falaEl.textContent = "Pois não, chefe?";
+  setModo("ouvindo");
+  setTimeout(() => {
+    if (modo !== "ouvindo" || Date.now() < armadoAte) return;
+    bip(SOM_DESISTIU);
+    setModo("espera");
+  }, ESPERA_PEDIDO + 100);
+}
+
 function pararEscuta() {
+  if (ouvidoProprio) { ouvindo = false; return; }
   if (rec && ouvindo) { rec.onend = () => { ouvindo = false; }; try { rec.abort(); } catch {} ouvindo = false; }
 }
 
@@ -636,6 +649,66 @@ setInterval(() => {
   if (!sempre || !window.Gravador) return;
   diag("microfone: áudio " + Gravador.estadoAudio + ", pico dos últimos 20 s = " + Gravador.pico(20).toFixed(3));
 }, 20000);
+
+// ---------- ouvido próprio (no notebook, sem internet) ----------
+let ouvidoProprio = false;
+function conferirOuvido() {
+  fetch("/api/ouvido").then((r) => r.json()).then((o) => {
+    if (o.pronto && !ouvidoProprio) {
+      ouvidoProprio = true;
+      diag("ouvido próprio LIGADO (o do navegador fica de reserva)");
+      if (rec && ouvindo) { rec.onend = () => {}; try { rec.abort(); } catch {} }
+      ouvindo = false;
+      if (sempre) escutar();
+    }
+    if (!o.pronto) setTimeout(conferirOuvido, 15000); // ainda baixando o modelo
+  }).catch(() => setTimeout(conferirOuvido, 15000));
+}
+conferirOuvido();
+
+const fala = { ativa: false, inicio: 0, ultimoSom: 0, piso: 0.01, mudoAte: 0 };
+setInterval(() => {
+  if (!ouvidoProprio || !window.Gravador || !Gravador.ativo) return;
+  if (!sempre && !umaVez) return;
+  // não escuta a si mesmo: enquanto fala/pensa e um instante depois
+  if (modo === "falando" || modo === "pensando" || (window.speechSynthesis && speechSynthesis.speaking)) { fala.ativa = false; fala.mudoAte = performance.now() + 700; return; }
+  const agora = performance.now();
+  if (agora < fala.mudoAte) return;
+  const v = Gravador.volume(0.1);
+  if (!fala.ativa) fala.piso = fala.piso * 0.97 + v * 0.03; // ruído de fundo
+  const limiar = Math.max(0.012, fala.piso * 2.5);
+  if (v > limiar) {
+    if (!fala.ativa) { fala.ativa = true; fala.inicio = agora - 350; }
+    fala.ultimoSom = agora;
+  }
+  const acabou = fala.ativa && agora - fala.ultimoSom > 800;
+  const longoDemais = fala.ativa && agora - fala.inicio > 12000;
+  if (acabou || longoDemais) {
+    fala.ativa = false;
+    if (fala.ultimoSom - fala.inicio > 450) processarTrecho(Gravador.trecho(fala.inicio, fala.ultimoSom + 250));
+  }
+}, 100);
+
+async function processarTrecho(audio) {
+  let r;
+  try { r = await Gravador.enviar("/api/ouvir", audio); } catch { return; }
+  const dito = (r && r.texto) || "";
+  diag("ouviu (próprio): " + dito + (r && r.voz && r.voz.nota != null ? "  [voz " + r.voz.nota + "/" + r.voz.limiar + (r.voz.ok ? " ok]" : " RECUSADA]") : ""));
+  if (!dito) return;
+  $("ouvi").textContent = "ouvi: " + dito;
+  clearTimeout(window._limpaOuvi);
+  window._limpaOuvi = setTimeout(() => { $("ouvi").textContent = ""; }, 5000);
+  const direto = umaVez || Date.now() < armadoAte;
+  if (!direto && !CHAMADO.test(dito)) return;
+  if (r.voz && r.voz.ok === false) {
+    umaVez = false; armadoAte = 0;
+    statusEl.textContent = "voz não reconhecida";
+    setTimeout(() => { if (modo === "espera") statusEl.textContent = ROTULOS.espera; }, 2500);
+    return;
+  }
+  voceEl.textContent = "Você: " + dito;
+  agirSobreFala(dito, direto);
+}
 
 let tempoControles = 0, tempoCursor = 0;
 const gaveta = document.getElementById("gaveta");
