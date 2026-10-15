@@ -152,6 +152,16 @@ const TOOLS = [
     },
   },
   {
+    name: "adicionar_plano",
+    description: "Anota um item num grupo da tela de Tarefas (Claudinho, Garagem dos sonhos, Aeromodelismo, Casa, Gráfica ou um grupo novo).",
+    input_schema: { type: "object", properties: { grupo: { type: "string" }, titulo: { type: "string" }, status: { type: "string", enum: ["pendente", "andamento", "feito", "ideia"] } }, required: ["grupo", "titulo"] },
+  },
+  {
+    name: "mudar_plano",
+    description: "Muda o status de um item da tela de Tarefas, achando pelo trecho do título.",
+    input_schema: { type: "object", properties: { trecho: { type: "string" }, status: { type: "string", enum: ["pendente", "andamento", "feito", "ideia"] } }, required: ["trecho", "status"] },
+  },
+  {
     name: "adicionar_tarefa",
     description: "Põe um item na lista de tarefas do Diego (coisas a fazer, comprar, lembrar).",
     input_schema: { type: "object", properties: { texto: { type: "string" } }, required: ["texto"] },
@@ -174,6 +184,67 @@ const TOOLS = [
 
 // ---------- estado da oficina (carregado uma vez, salvo quando muda) ----------
 let diagnostico = [];
+
+// ---------- planos (tela de Tarefas) ----------
+const ARQ_PLANOS = path.join(here, "data", "planos.json");
+const novoId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+function salvarPlanos() {
+  planos.atualizado = new Date().toISOString().slice(0, 10);
+  fs.mkdirSync(path.dirname(ARQ_PLANOS), { recursive: true });
+  fs.writeFileSync(ARQ_PLANOS, JSON.stringify(planos, null, 2));
+}
+let planos = (() => {
+  try { return JSON.parse(fs.readFileSync(ARQ_PLANOS, "utf8")); } catch {}
+  let semente = { grupos: [] };
+  try { semente = JSON.parse(fs.readFileSync(path.join(here, "planos.json"), "utf8")); } catch {}
+  return semente;
+})();
+for (const g of planos.grupos) for (const i of g.itens) i.id = i.id || novoId();
+if (!fs.existsSync(ARQ_PLANOS)) { try { salvarPlanos(); } catch {} }
+
+const STATUS_OK = ["pendente", "andamento", "feito", "ideia"];
+function acharItem(trecho) {
+  const alvo = String(trecho || "").toLowerCase().trim();
+  if (!alvo) return null;
+  for (const g of planos.grupos) for (const i of g.itens) if (i.titulo.toLowerCase().includes(alvo)) return { g, i };
+  return null;
+}
+function mexerPlanos(p) {
+  const grupo = (nome) => {
+    const n = String(nome || "").trim() || "Lista geral";
+    let g = planos.grupos.find((x) => x.nome.toLowerCase() === n.toLowerCase());
+    if (!g) { g = { nome: n, itens: [] }; planos.grupos.push(g); }
+    return g;
+  };
+  const porId = (id) => { for (const g of planos.grupos) { const k = g.itens.findIndex((i) => i.id === id); if (k >= 0) return { g, k, i: g.itens[k] }; } return null; };
+  if (p.acao === "adicionar") {
+    const titulo = String(p.titulo || "").trim();
+    if (!titulo) return "Erro: item vazio.";
+    grupo(p.grupo).itens.push({ id: novoId(), titulo, status: STATUS_OK.includes(p.status) ? p.status : "pendente" });
+  } else if (p.acao === "editar" || p.acao === "status" || p.acao === "apagar") {
+    const achado = p.id ? porId(p.id) : acharItem(p.trecho);
+    if (!achado) return "Erro: não achei esse item.";
+    if (p.acao === "apagar") (achado.g.itens.splice(achado.k ?? achado.g.itens.indexOf(achado.i), 1));
+    if (p.acao === "editar") {
+      if (typeof p.titulo === "string" && p.titulo.trim()) achado.i.titulo = p.titulo.trim();
+      if (typeof p.obs === "string") { if (p.obs.trim()) achado.i.obs = p.obs.trim(); else delete achado.i.obs; }
+    }
+    if (p.acao === "status") {
+      if (!STATUS_OK.includes(p.status)) return "Erro: status inválido.";
+      achado.i.status = p.status;
+    }
+  } else if (p.acao === "concluir_tarefa" || p.acao === "apagar_tarefa") {
+    const k = estado.tarefas.findIndex((t) => t.id === p.id);
+    if (k < 0) return "Erro: tarefa não encontrada.";
+    if (p.acao === "apagar_tarefa") estado.tarefas.splice(k, 1); else { estado.tarefas[k].feita = true; estado.tarefas[k].feitaEm = Date.now(); }
+    salvar();
+    return "ok";
+  } else {
+    return "Erro: ação desconhecida.";
+  }
+  salvarPlanos();
+  return "ok";
+}
 let paraAbrir = null; // página que a tela deve abrir depois da resposta
 let estado = { cronometros: [], projeto: { nome: "", feito: [], falta: [] }, diario: [], tarefas: [] };
 try { estado = { ...estado, ...JSON.parse(fs.readFileSync(ARQ_ESTADO, "utf8")) }; } catch {}
@@ -216,6 +287,14 @@ function executar(nome, input = {}) {
     paraAbrir = url;
     return "Página aberta na tela.";
   }
+  if (nome === "adicionar_plano") {
+    const r = mexerPlanos({ acao: "adicionar", grupo: input.grupo, titulo: input.titulo, status: input.status });
+    return r === "ok" ? "Item anotado na tela de Tarefas." : r;
+  }
+  if (nome === "mudar_plano") {
+    const r = mexerPlanos({ acao: "status", trecho: input.trecho, status: input.status });
+    return r === "ok" ? "Status atualizado na tela de Tarefas." : r;
+  }
   if (nome === "adicionar_tarefa") {
     const texto = String(input.texto || "").trim();
     if (!texto) return "Erro: tarefa vazia.";
@@ -254,7 +333,7 @@ function contexto() {
     `[Estado da oficina — ${agora.toLocaleString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`,
     `Cronômetros: ${crons.join("; ") || "nenhum"}`,
     `Projeto: ${p.nome || "nenhum definido"}${p.feito.length ? ` | feito: ${p.feito.join(", ")}` : ""}${p.falta.length ? ` | falta: ${p.falta.join(", ")}` : ""}`,
-    `Planos em aberto: ${(() => { try { return JSON.parse(fs.readFileSync(path.join(here, "planos.json"), "utf8")).grupos.flatMap((g) => g.itens.filter((i) => i.status !== "feito").map((i) => g.nome + ": " + i.titulo)).join("; "); } catch { return "nenhum"; } })()}`,
+    `Planos em aberto (grupo: item [status]): ${planos.grupos.flatMap((g) => g.itens.filter((i) => i.status !== "feito").map((i) => `${g.nome}: ${i.titulo} [${i.status}]`)).join("; ") || "nenhum"}`,
     `Tarefas pendentes: ${estado.tarefas.filter((t) => !t.feita).map((t) => t.texto).join("; ") || "nenhuma"}`,
     `Últimas anotações do diário: ${diario.join(" / ") || "nenhuma"}]`,
   ].join("\n");
@@ -269,7 +348,9 @@ Em "acoes" vão as ações que você decidiu executar (lista vazia quando não h
 {"tipo": "atualizar_projeto", "nome": "nome do avião", "feito": ["etapas prontas"], "falta": ["etapas pendentes"]} — as listas enviadas substituem as anteriores; omita o campo que não muda
 {"tipo": "anotar_diario", "texto": "a anotação"}
 {"tipo": "abrir_pagina", "url": "https://..."} — abre a página na tela, quando ele pedir pra ver/abrir algo
-{"tipo": "adicionar_tarefa", "texto": "comprar fita dupla face"}
+{"tipo": "adicionar_tarefa", "texto": "comprar fita dupla face"} — "anota em tarefas"/"coloca na lista" sem grupo = Lista do dia
+{"tipo": "adicionar_plano", "grupo": "Casa", "titulo": "trocar a bomba da piscina", "status": "pendente"} — quando ele disser o grupo (Claudinho, Garagem dos sonhos, Aeromodelismo, Casa, Gráfica ou um novo)
+{"tipo": "mudar_plano", "trecho": "planta 4 x 5", "status": "andamento"} — status: pendente, andamento, feito ou ideia
 {"tipo": "concluir_tarefa", "texto": "fita dupla face"}
 As ações são executadas depois da sua resposta, então a "fala" já deve confirmar o que foi feito.`;
 
@@ -469,9 +550,11 @@ const server = http.createServer(async (req, res) => {
       return fs.createReadStream(path.join(here, "public", "planos.html")).pipe(res);
     }
     if (req.method === "GET" && url.pathname === "/api/planos") {
-      let planos = { grupos: [] };
-      try { planos = JSON.parse(fs.readFileSync(path.join(here, "planos.json"), "utf8")); } catch {}
       return json(res, 200, { ...planos, tarefas: estado.tarefas.filter((t) => !t.feita) });
+    }
+    if (req.method === "POST" && url.pathname === "/api/planos/mexer") {
+      const r = mexerPlanos(await lerCorpo(req));
+      return json(res, r === "ok" ? 200 : 400, { resultado: r, ...planos, tarefas: estado.tarefas.filter((t) => !t.feita) });
     }
     if (req.method === "GET" && url.pathname === "/lib/lottie.min.js") {
       res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "max-age=86400" });
