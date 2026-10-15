@@ -183,7 +183,9 @@
 const $ = (id) => document.getElementById(id);
 const orbe = $("orbe"), statusEl = $("status"), voceEl = $("voce"), falaEl = $("fala"), avisoEl = $("aviso");
 const ROTULOS = { espera: "em espera", ouvindo: "ouvindo", pensando: "pensando", falando: "falando" };
-const CHAMADO = /\b(?:(?:hey|hei|ei|ey|rei|oi|ok|e)[,\s]+)?cl[aá]udi(?:nh|n)[oa]s?\b[,.!?]?\s*/i;
+// "Claudinho" e as formas que o reconhecimento costuma entender errado
+// ("valdinho", "naudinho", "Erikaudinho"...): qualquer palavra terminada em -audinho/-aldinho conta.
+const CHAMADO = /[a-záéíóúãõâêôç]*?(?:[aá]u?l?d|cl[aá]ud)i(?:nh|n)[oa]s?\b[,.!?]?\s*/i;
 const ESPERA_PEDIDO = 8000;
 
 let modo = "espera";
@@ -515,7 +517,9 @@ function escutar() {
   };
   const agirSobreFala = (dito, direto) => {
     if (direto) { umaVez = false; armadoAte = 0; return enviar(dito); }
-    const pedido = dito.replace(CHAMADO, "").trim();
+    // O pedido é o que vem DEPOIS do chamado (o que veio antes costuma ser o "hey" mal entendido)
+    const achado = dito.match(CHAMADO);
+    const pedido = (achado ? dito.slice(achado.index + achado[0].length) : dito).trim();
     if (pedido.length > 2) { bip(SOM_ACORDOU); return enviar(pedido); }
     // Só o chamado: toca o bip e espera o pedido na próxima frase.
     armadoAte = Date.now() + ESPERA_PEDIDO;
@@ -554,11 +558,12 @@ function pararEscuta() {
 // Confere os últimos segundos falados contra a voz cadastrada.
 // Sem cadastro, sem microfone liberado ou com o reconhecimento fora do ar, não trava o chefe.
 async function vozDoChefe() {
-  if (!window.Gravador || !Gravador.ativo) return true;
+  if (!window.Gravador || !Gravador.ativo) { diag("voz: gravador desligado, aceitei sem conferir"); return true; }
   try {
     const trecho = Gravador.ultimos(6);
     if (trecho.length < Gravador.taxa * 0.4) return true;
     const r = await Gravador.enviar("/api/voz/conferir", trecho);
+    diag("voz: " + (r.ok === false ? "RECUSADA" : "aceita") + (r.nota != null ? " nota " + r.nota + " (precisa " + r.limiar + ")" : r.semCadastro ? " (sem cadastro)" : ""));
     return r.ok !== false;
   } catch {
     return true;
