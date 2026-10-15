@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel do Claudinho</title>
+<link rel="icon" type="image/png" href="/claudinho.png">
+<style>
+  :root { --bg:#070b12; --painel:#0d1420; --painel2:#111b2b; --borda:#1c2a3d; --texto:#dbe7f5; --fraco:#7b8fa8; --azul:#35c6ff; --laranja:#ff9d3c; --verde:#4be3a1; --coral:#f08a5d; --roxo:#a78bfa; }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body { margin:0; background:var(--bg); color:var(--texto); font-family:"Segoe UI",system-ui,sans-serif; padding:24px; overflow:auto; }
+  .grade { display:grid; grid-template-columns:repeat(12, 1fr); gap:18px; max-width:1600px; margin:0 auto; }
+  .card { background:var(--painel); border:1px solid var(--borda); border-radius:20px; padding:22px; min-height:150px; }
+  .card h2 { margin:0 0 14px; font-size:13px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--fraco); display:flex; gap:8px; align-items:center; }
+  .c4 { grid-column:span 4; } .c6 { grid-column:span 6; } .c8 { grid-column:span 8; } .c12 { grid-column:span 12; }
+  @media (max-width:1000px) { .c4, .c6, .c8 { grid-column:span 12; } }
+
+  .hora { font-size:clamp(64px, 9vw, 130px); font-weight:300; line-height:1; font-variant-numeric:tabular-nums; }
+  .data { color:var(--fraco); font-size:20px; margin-top:8px; text-transform:capitalize; }
+  .saudacao { margin-top:16px; font-size:20px; } .saudacao b { color:var(--coral); font-weight:600; }
+
+  .clima-agora { display:flex; align-items:center; gap:18px; }
+  .clima-icone { font-size:64px; line-height:1; }
+  .clima-temp { font-size:56px; font-weight:300; }
+  .clima-desc { color:var(--fraco); font-size:16px; }
+  .dias { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px; }
+  .dia { background:var(--painel2); border-radius:12px; padding:10px; text-align:center; font-size:14px; }
+  .dia b { display:block; font-size:22px; margin:4px 0; }
+  .dia small { color:var(--azul); }
+
+  .lista { list-style:none; margin:0; padding:0; }
+  .lista li { padding:10px 0; border-top:1px solid var(--borda); font-size:17px; display:flex; gap:10px; align-items:baseline; }
+  .lista li:first-child { border-top:0; }
+  .lista .tag { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--fraco); white-space:nowrap; }
+  .vazio { color:var(--fraco); font-size:16px; }
+  .cron { display:flex; justify-content:space-between; align-items:baseline; padding:10px 0; border-top:1px solid var(--borda); font-size:18px; }
+  .cron:first-child { border-top:0; }
+  .cron span { font-size:34px; color:var(--laranja); font-variant-numeric:tabular-nums; }
+  .cron.fim span { color:var(--verde); }
+
+  .estado { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px; }
+  .chip { background:var(--painel2); border-radius:12px; padding:12px 14px; }
+  .chip small { display:block; color:var(--fraco); font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+  .chip b { font-size:18px; font-weight:600; }
+  .ok { color:var(--verde); } .alerta { color:var(--laranja); }
+  .rodape { text-align:center; color:var(--fraco); font-size:14px; margin-top:20px; }
+</style>
+</head>
+<body>
+<div class="grade">
+  <section class="card c4">
+    <div class="hora" id="hora">--:--</div>
+    <div class="data" id="data"></div>
+    <div class="saudacao" id="saudacao"></div>
+  </section>
+
+  <section class="card c4">
+    <h2>☁️ Clima em Avaré</h2>
+    <div id="clima"><div class="vazio">Carregando…</div></div>
+  </section>
+
+  <section class="card c4">
+    <h2>⏱️ Cronômetros</h2>
+    <div id="crons"><div class="vazio">Nenhum rodando.</div></div>
+  </section>
+
+  <section class="card c6">
+    <h2>🗒️ Lista do dia</h2>
+    <ul class="lista" id="dia"><li class="vazio">Nada anotado. Diga "hey Claudinho, anota em tarefas…"</li></ul>
+  </section>
+
+  <section class="card c6">
+    <h2>🔧 Em andamento</h2>
+    <ul class="lista" id="andamento"></ul>
+  </section>
+
+  <section class="card c12">
+    <h2>🤖 Claudinho</h2>
+    <div class="estado" id="estado"></div>
+  </section>
+</div>
+<div class="rodape">Diga "hey Claudinho, fecha o painel" pra voltar</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const el = (tag, classe, texto) => { const e = document.createElement(tag); if (classe) e.className = classe; if (texto != null) e.textContent = texto; return e; };
+
+function relogio() {
+  const d = new Date();
+  $("hora").textContent = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  $("data").textContent = d.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+  const h = d.getHours();
+  $("saudacao").innerHTML = (h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite") + ", <b>chefe</b>.";
+}
+
+// Códigos de tempo da Open-Meteo (WMO)
+function tempo(c) {
+  if (c === 0) return ["☀️", "Céu limpo"];
+  if (c <= 2) return ["🌤️", "Poucas nuvens"];
+  if (c === 3) return ["☁️", "Nublado"];
+  if (c <= 48) return ["🌫️", "Neblina"];
+  if (c <= 57) return ["🌦️", "Garoa"];
+  if (c <= 67) return ["🌧️", "Chuva"];
+  if (c <= 77) return ["🌨️", "Granizo"];
+  if (c <= 82) return ["🌧️", "Pancadas de chuva"];
+  return ["⛈️", "Tempestade"];
+}
+function clima() {
+  fetch("https://api.open-meteo.com/v1/forecast?latitude=-23.1047&longitude=-48.9258&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=America%2FSao_Paulo&forecast_days=3")
+    .then((r) => r.json()).then((c) => {
+      const [ic, desc] = tempo(c.current.weather_code);
+      const agora = el("div", "clima-agora");
+      const info = el("div");
+      info.append(el("div", "clima-temp", Math.round(c.current.temperature_2m) + "°"), el("div", "clima-desc", `${desc} · umidade ${c.current.relative_humidity_2m}% · vento ${Math.round(c.current.wind_speed_10m)} km/h`));
+      agora.append(el("div", "clima-icone", ic), info);
+      const dias = el("div", "dias");
+      c.daily.time.forEach((t, i) => {
+        const d = el("div", "dia");
+        const nome = i === 0 ? "Hoje" : new Date(t + "T12:00").toLocaleDateString("pt-BR", { weekday: "short" });
+        d.append(document.createTextNode(nome + " " + tempo(c.daily.weather_code[i])[0]), el("b", "", `${Math.round(c.daily.temperature_2m_max[i])}° / ${Math.round(c.daily.temperature_2m_min[i])}°`), el("small", "", `chuva ${c.daily.precipitation_probability_max[i] ?? 0}%`));
+        dias.append(d);
+      });
+      $("clima").replaceChildren(agora, dias);
+    }).catch(() => { $("clima").replaceChildren(el("div", "vazio", "Sem internet pro clima agora.")); });
+}
+
+let crons = [];
+function desenharCrons() {
+  if (!crons.length) { $("crons").replaceChildren(el("div", "vazio", "Nenhum rodando.")); return; }
+  $("crons").replaceChildren(...crons.map((c) => {
+    const s = Math.max(0, Math.round((c.fimEm - Date.now()) / 1000));
+    const linha = el("div", "cron" + (s === 0 ? " fim" : ""));
+    linha.append(el("b", "", c.nome), el("span", "", s === 0 ? "pronto" : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`));
+    return linha;
+  }));
+}
+
+function dados() {
+  fetch("/api/estado").then((r) => r.json()).then((e) => {
+    crons = e.cronometros || [];
+    desenharCrons();
+    fetch("/api/voz").then((r) => r.json()).catch(() => ({})).then((v) => fetch("/api/ouvido").then((r) => r.json()).catch(() => ({})).then((o) => {
+      const chips = [
+        ["Versão", "v" + e.versao, ""],
+        ["Cérebro", e.temChave ? "ligado" : "sem cérebro", e.temChave ? "ok" : "alerta"],
+        ["Ouvido", o.pronto ? "próprio (offline)" : "do navegador", o.pronto ? "ok" : "alerta"],
+        ["Sua voz", v.cadastrada ? "cadastrada" : "não cadastrada", v.cadastrada ? "ok" : "alerta"],
+        ["Tarefas do dia", String((e.tarefas || []).length), ""],
+      ];
+      $("estado").replaceChildren(...chips.map(([rot, val, cls]) => { const c = el("div", "chip"); c.append(el("small", "", rot), el("b", cls, val)); return c; }));
+    }));
+  }).catch(() => {});
+  fetch("/api/planos").then((r) => r.json()).then((p) => {
+    const dia = p.tarefas || [];
+    $("dia").replaceChildren(...(dia.length ? dia.map((t) => el("li", "", t.texto)) : [el("li", "vazio", 'Nada anotado. Diga "hey Claudinho, anota em tarefas…"')]));
+    const andando = p.grupos.flatMap((g) => g.itens.filter((i) => i.status === "andamento").map((i) => ({ g: g.nome, t: i.titulo }))).slice(0, 6);
+    $("andamento").replaceChildren(...(andando.length ? andando.map((x) => { const li = el("li"); li.append(el("span", "tag", x.g), document.createTextNode(x.t)); return li; }) : [el("li", "vazio", "Nada em andamento.")]));
+  }).catch(() => {});
+}
+
+relogio(); clima(); dados();
+setInterval(relogio, 1000);
+setInterval(desenharCrons, 1000);
+setInterval(dados, 5000);
+setInterval(clima, 15 * 60 * 1000);
+</script>
+</body>
+</html>

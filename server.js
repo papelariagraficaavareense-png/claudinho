@@ -523,6 +523,10 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-store" });
       return fs.createReadStream(path.join(here, "public", "gravador.js")).pipe(res);
     }
+    if (req.method === "GET" && url.pathname === "/painel") {
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+      return fs.createReadStream(path.join(here, "public", "painel.html")).pipe(res);
+    }
     if (req.method === "GET" && url.pathname === "/voz") {
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
       return fs.createReadStream(path.join(here, "public", "voz.html")).pipe(res);

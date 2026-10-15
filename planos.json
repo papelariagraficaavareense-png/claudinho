@@ -66,6 +66,11 @@
           "titulo": "Ouvido offline dentro do notebook (sem internet, sem navegador) e voz bem humana",
           "status": "andamento",
           "obs": "versão 16: ouvido próprio em português, sem internet (falta testar no notebook)"
+        },
+        {
+          "titulo": "Painel por voz (\"hey Claudinho, painel\"): hora, clima de Avaré, cronômetros, lista do dia, em andamento, estado do Claudinho",
+          "status": "andamento",
+          "obs": "montando junto com o Diego: o que mais entra?"
         }
       ]
     },
