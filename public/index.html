@@ -162,7 +162,7 @@
     <div id="status" role="status">em espera</div>
     <div id="ouvi"></div>
     <div id="voce"></div>
-    <div id="fala">Oi, chefe. Aperte Falar ou a barra de espaço.</div>
+    <div id="fala">Oi, chefe. É só dizer "hey Claudinho".</div>
     <div id="aviso"></div>
   </section>
 
@@ -177,7 +177,7 @@
 </main>
 
 <footer id="gaveta">
-  <button id="btn-falar" type="button" title="Falar (barra de espaço)"><span class="icone-bt">🎙️</span>Falar</button>
+  <button id="btn-falar" type="button" title="Falar"><span class="icone-bt">🎙️</span>Falar</button>
   <button id="btn-sempre" type="button" title="Fica ouvindo e responde quando você disser Claudinho">Sempre ouvindo: não</button>
   <button type="button" onclick="location.href='/tarefas'"><span class="icone-bt">✅</span>Tarefas</button>
   <button type="button" onclick="location.href='/voz'"><span class="icone-bt">🗣️</span>Minha voz</button>
@@ -619,10 +619,24 @@ $("texto").addEventListener("keydown", (ev) => {
   enviar(t);
 });
 document.addEventListener("keydown", (ev) => {
-  if (ev.code === "Space" && document.activeElement !== $("texto")) { ev.preventDefault(); apertarFalar(); }
+  // (sem atalho na barra de espaço: o teclado compartilhado mandava espaços pra cá e o Claudinho apitava)
 });
 
 // Gaveta dos botões: sobe com o mouse na beirada de baixo, no puxador ou ao digitar; desce sozinha depois de 5 s.
+// Diário do microfone: quais existem, qual o navegador usa e quanto som chega.
+function diagMicrofones() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+  navigator.mediaDevices.enumerateDevices().then((lista) => {
+    const mics = lista.filter((d) => d.kind === "audioinput").map((d) => (d.deviceId === "default" ? "[padrão] " : "") + (d.label || "sem nome"));
+    diag("microfones: " + (mics.join(" | ") || "nenhum"));
+  }).catch(() => {});
+}
+setTimeout(diagMicrofones, 4000);
+setInterval(() => {
+  if (!sempre || !window.Gravador) return;
+  diag("microfone: áudio " + Gravador.estadoAudio + ", pico dos últimos 20 s = " + Gravador.pico(20).toFixed(3));
+}, 20000);
+
 let tempoControles = 0, tempoCursor = 0;
 const gaveta = document.getElementById("gaveta");
 function abrirGaveta() {

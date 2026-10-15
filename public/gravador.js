@@ -72,5 +72,13 @@ window.Gravador = (() => {
     return r.json();
   }
 
-  return { iniciar, ultimos, gravar, enviar, get taxa() { return taxa; }, get ativo() { return ativo && ctx && ctx.state === "running"; } };
+  // Maior volume dos últimos N segundos (0 = silêncio total; fala normal costuma passar de 0,05).
+  function pico(seg) {
+    const a = juntar(performance.now() - seg * 1000);
+    let m = 0;
+    for (let i = 0; i < a.length; i++) { const v = Math.abs(a[i]); if (v > m) m = v; }
+    return m;
+  }
+
+  return { iniciar, ultimos, gravar, enviar, pico, get estadoAudio() { return ctx ? ctx.state : "sem áudio"; }, get taxa() { return taxa; }, get ativo() { return ativo && ctx && ctx.state === "running"; } };
 })();
