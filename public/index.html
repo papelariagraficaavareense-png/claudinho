@@ -9,7 +9,7 @@
   :root { --bg:#070b12; --painel:#0d1420; --borda:#1c2a3d; --texto:#dbe7f5; --fraco:#6f859e; --azul:#35c6ff; --laranja:#ff9d3c; --verde:#4be3a1; --vermelho:#ff5d5d; --coral:#f08a5d; }
   * { box-sizing:border-box; }
   html,body { height:100%; margin:0; }
-  body { background:var(--bg); color:var(--texto); font-family:"Segoe UI",system-ui,sans-serif; display:grid; grid-template-rows:auto 1fr auto; gap:16px; padding:20px; overflow:hidden; }
+  body { background:var(--bg); color:var(--texto); font-family:"Segoe UI",system-ui,sans-serif; display:grid; grid-template-rows:auto 1fr; gap:16px; padding:20px; overflow:hidden; }
   header { display:flex; justify-content:space-between; align-items:baseline; }
   header h1 { margin:0; font-size:22px; font-weight:600; letter-spacing:.18em; color:var(--azul); }
   header h1 small { color:var(--fraco); font-weight:400; letter-spacing:.08em; margin-left:12px; font-size:13px; }
@@ -61,9 +61,16 @@
   #voce { color:var(--fraco); font-size:16px; min-height:22px; max-width:90%; }
   #fala { font-size:22px; line-height:1.45; max-width:92%; min-height:64px; }
   #aviso { color:var(--laranja); font-size:14px; max-width:90%; }
-  footer { display:flex; gap:10px; align-items:center; transition:opacity .5s; }
+  footer { position:fixed; left:50%; bottom:18px; z-index:20; width:min(1100px, calc(100% - 32px)); display:flex; gap:10px; align-items:center;
+    padding:12px; border-radius:20px; background:rgba(13,20,32,.94); border:1px solid var(--borda); box-shadow:0 18px 50px rgba(0,0,0,.55);
+    transform:translate(-50%, calc(100% + 40px)); transition:transform .35s cubic-bezier(.2,.8,.2,1); }
+  footer.aberto { transform:translate(-50%, 0); }
+  #puxador { position:fixed; left:50%; bottom:8px; z-index:19; transform:translateX(-50%); width:90px; height:22px; border:0; padding:0; background:none; cursor:pointer; }
+  #puxador::before { content:""; display:block; width:56px; height:5px; margin:8px auto 0; border-radius:99px; background:var(--borda); transition:background .2s, width .2s; }
+  #puxador:hover::before { background:var(--azul); width:72px; }
+  footer.aberto ~ #puxador { opacity:0; pointer-events:none; }
+  footer .icone-bt { font-size:17px; margin-right:6px; }
   /* Tela limpa: os botões somem sozinhos e voltam quando mexe o mouse ou aperta uma tecla */
-  body.limpo footer { opacity:0; pointer-events:none; }
   body.limpo { cursor:none; }
   /* Painel vazio não aparece (no lugar dele fica só espaço) */
   .painel.sem-nada { visibility:hidden; }
@@ -169,14 +176,15 @@
   </section>
 </main>
 
-<footer>
-  <button id="btn-falar" type="button">Falar (espaço)</button>
+<footer id="gaveta">
+  <button id="btn-falar" type="button" title="Falar (barra de espaço)"><span class="icone-bt">🎙️</span>Falar</button>
   <button id="btn-sempre" type="button" title="Fica ouvindo e responde quando você disser Claudinho">Sempre ouvindo: não</button>
-  <button type="button" onclick="location.href='/tarefas'">Tarefas</button>
-  <button type="button" onclick="location.href='/voz'">Minha voz</button>
+  <button type="button" onclick="location.href='/tarefas'"><span class="icone-bt">✅</span>Tarefas</button>
+  <button type="button" onclick="location.href='/voz'"><span class="icone-bt">🗣️</span>Minha voz</button>
   <select id="voz" title="Voz do Claudinho (as com estrela são as naturais)" aria-label="Voz do Claudinho" hidden></select>
   <input id="texto" type="text" placeholder="…ou escreva aqui e aperte Enter" autocomplete="off">
 </footer>
+<button id="puxador" type="button" aria-label="Mostrar os botões" title="Mostrar os botões"></button>
 
 <script src="/gravador.js"></script>
 <script>
@@ -581,7 +589,7 @@ function apertarFalar() {
 }
 
 function atualizarBotao() {
-  $("btn-sempre").textContent = "Sempre ouvindo: " + (sempre ? "sim" : "não");
+  $("btn-sempre").innerHTML = sempre ? '<span class="icone-bt">👂</span>Ouvindo' : '<span class="icone-bt">🔇</span>Sem ouvir';
   $("btn-sempre").classList.toggle("ligado", sempre);
 }
 
@@ -614,16 +622,31 @@ document.addEventListener("keydown", (ev) => {
   if (ev.code === "Space" && document.activeElement !== $("texto")) { ev.preventDefault(); apertarFalar(); }
 });
 
-let tempoControles = 0;
-function mostrarControles() {
+// Gaveta dos botões: sobe com o mouse na beirada de baixo, no puxador ou ao digitar; desce sozinha depois de 5 s.
+let tempoControles = 0, tempoCursor = 0;
+const gaveta = document.getElementById("gaveta");
+function abrirGaveta() {
+  gaveta.classList.add("aberto");
+  clearTimeout(tempoControles);
+  tempoControles = setTimeout(fecharGaveta, 5000);
+}
+function fecharGaveta() {
+  const foco = document.activeElement;
+  if (gaveta.matches(":hover") || foco === $("texto") || foco === $("voz")) { tempoControles = setTimeout(fecharGaveta, 2000); return; }
+  gaveta.classList.remove("aberto");
+}
+function mostrarControles(ev) {
   acordar();
   document.body.classList.remove("limpo");
-  clearTimeout(tempoControles);
-  tempoControles = setTimeout(() => {
-    if (document.activeElement !== $("texto") && document.activeElement !== $("voz")) document.body.classList.add("limpo");
-  }, 4000);
+  clearTimeout(tempoCursor);
+  tempoCursor = setTimeout(() => document.body.classList.add("limpo"), 4000);
+  if (!ev) return;
+  if (ev.type === "keydown" && ev.code !== "Space") abrirGaveta();
+  if ((ev.type === "mousemove" || ev.type === "mousedown") && ev.clientY > window.innerHeight - 90) abrirGaveta();
+  if (ev.type === "touchstart") abrirGaveta();
 }
 for (const ev of ["mousemove", "mousedown", "keydown", "touchstart"]) document.addEventListener(ev, mostrarControles, { passive: true });
+document.getElementById("puxador").onclick = abrirGaveta;
 mostrarControles();
 
 relogio();
