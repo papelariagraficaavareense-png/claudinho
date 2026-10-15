@@ -65,6 +65,9 @@
     padding:12px; border-radius:20px; background:rgba(13,20,32,.94); border:1px solid var(--borda); box-shadow:0 18px 50px rgba(0,0,0,.55);
     transform:translate(-50%, calc(100% + 40px)); transition:transform .35s cubic-bezier(.2,.8,.2,1); }
   footer.aberto { transform:translate(-50%, 0); }
+  #musica { position:fixed; right:18px; bottom:18px; z-index:14; width:320px; background:var(--painel); border:1px solid var(--borda); border-radius:14px; overflow:hidden; box-shadow:0 12px 40px rgba(0,0,0,.5); }
+  #musica iframe { display:block; width:320px; height:180px; border:0; }
+  #musica .mus-titulo { padding:8px 12px; font-size:13px; color:var(--texto); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #camadaPainel { position:fixed; inset:0; z-index:15; background:var(--bg); }
   #camadaPainel iframe { width:100%; height:100%; border:0; display:block; }
   #puxador { position:fixed; left:50%; bottom:8px; z-index:19; transform:translateX(-50%); width:90px; height:22px; border:0; padding:0; background:none; cursor:pointer; }
@@ -191,6 +194,7 @@
 <button id="puxador" type="button" aria-label="Mostrar os botões" title="Mostrar os botões"></button>
 
 <script src="/gravador.js"></script>
+<script src="/musica.js" defer></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const orbe = $("orbe"), statusEl = $("status"), voceEl = $("voce"), falaEl = $("fala"), avisoEl = $("aviso");
@@ -301,6 +305,7 @@ setInterval(() => {
 
 function setModo(m) {
   acordar();
+  if (window.Musica) Musica.abaixar(m !== "espera");
   modo = m;
   orbe.className = m === "espera" ? "" : m;
   mostrarFigurinha();
@@ -489,6 +494,7 @@ async function enviar(texto) {
     const dados = await r.json();
     if (dados.estado) aplicar(dados.estado);
     if (dados.abrir) window.open(dados.abrir, "_blank");
+    if (dados.tocar && window.Musica) Musica.tocar(dados.tocar);
     dizer(dados.fala || "Não entendi, chefe.");
   } catch {
     dizer("Não consegui falar com o servidor, chefe.");
@@ -568,6 +574,27 @@ function alternarPainel() { if ($("camadaPainel").hidden) abrirPainel(); else fe
 function comandoLocal(pedido) {
   const p = pedido.toLowerCase().replace(/[.,!?]/g, " ").trim();
   if (/^(abr[ea]|abrir|mostr[ae]|mostrar|liga|coloca)?\s*(o\s+)?pain[eé]l\b/.test(p)) { abrirPainel(); falaEl.textContent = "Painel aberto, chefe."; setModo("espera"); return true; }
+  if (window.Musica) {
+    const pedeMusica = p.match(/^(?:toca|tocar|toque|bota pra tocar|coloca pra tocar|(?:coloca|bota|p[oõ]e)\s+(?:uma\s+|a\s+)?(?:m[uú]sica|som))\s*(?:a\s+|o\s+|uma\s+|um\s+)?(?:m[uú]sica\s+)?(?:d[aeo]s?\s+)?(.*)$/);
+    if (pedeMusica && pedeMusica[1] && pedeMusica[1].trim().length > 1) {
+      const busca = pedeMusica[1].trim();
+      falaEl.textContent = "Tocando " + busca + ", chefe.";
+      setModo("espera");
+      Musica.tocar(busca).then((ok) => { if (!ok) falaEl.textContent = "Não achei essa música, chefe."; });
+      return true;
+    }
+    if (Musica.ativo) {
+      const acoes = [
+        [/^(pausa|pausar|para a m[uú]sica|parar a m[uú]sica|segura)/, () => Musica.pausar(), "Pausei."],
+        [/^(continua|continuar|volta a m[uú]sica|solta|despausa|play)/, () => Musica.continuar(), "Continuando."],
+        [/^(pr[oó]xima|pula|passa|outra)/, () => Musica.proxima(), "Próxima."],
+        [/^(mais alto|aumenta|sobe o volume|aumenta o som)/, () => Musica.mudarVolume(15), "Mais alto."],
+        [/^(mais baixo|abaixa|diminui|baixa o volume|abaixa o som)/, () => Musica.mudarVolume(-15), "Mais baixo."],
+        [/^(desliga a m[uú]sica|desliga o som|chega de m[uú]sica|para tudo)/, () => Musica.parar(), "Música desligada."],
+      ];
+      for (const [re, fazer, texto] of acoes) if (re.test(p)) { fazer(); falaEl.textContent = texto; setModo("espera"); return true; }
+    }
+  }
   if (!$("camadaPainel").hidden && /^(fecha|fechar|tira|sai|sair|volta|voltar|esconde)\b/.test(p)) { fecharPainel(); falaEl.textContent = "Pronto, chefe."; setModo("espera"); return true; }
   return false;
 }

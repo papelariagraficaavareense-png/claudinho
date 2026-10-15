@@ -68,6 +68,8 @@
 
   <section class="q"><h2>🤖 Claudinho</h2><div class="corpo"><div class="estado" id="estado"></div></div></section>
 
+  <section class="q"><h2>🎵 Tocando agora</h2><div class="corpo" id="musicaAgora"><div class="vazio">Nada tocando. Diga "hey Claudinho, toca…"</div></div></section>
+
   <section class="q breve"><h2>💰 Vendas da gráfica</h2><div class="corpo"><div class="ic">💰</div>em breve</div></section>
 
   <section class="q breve"><h2>📹 Câmeras</h2><div class="corpo"><div class="ic">📹</div>em breve</div></section>
@@ -168,7 +170,17 @@ function dados() {
   }).catch(() => {});
 }
 
-relogio(); clima(); dados();
+function musica() {
+  fetch("/api/musica").then((r) => r.json()).then((m) => {
+    if (!m.titulo) { $("musicaAgora").replaceChildren(el("div", "vazio", 'Nada tocando. Diga "hey Claudinho, toca…"')); return; }
+    const ic = el("div", "clima-icone", m.tocando ? "🎶" : "⏸️");
+    const t = el("div", "", m.titulo);
+    t.style.fontSize = "7cqmin"; t.style.marginTop = "3cqh";
+    $("musicaAgora").replaceChildren(ic, t, el("div", "vazio", m.tocando ? "tocando" : "pausada"));
+  }).catch(() => {});
+}
+setInterval(musica, 3000);
+relogio(); clima(); dados(); musica();
 setInterval(relogio, 1000);
 setInterval(desenharCrons, 1000);
 setInterval(dados, 5000);

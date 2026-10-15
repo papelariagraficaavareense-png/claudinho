@@ -49,8 +49,8 @@
         },
         {
           "titulo": "Tocar música por voz e abaixar quando for falar",
-          "status": "pendente",
-          "obs": "YouTube ou Spotify Premium?"
+          "status": "feito",
+          "obs": "versão 19: YouTube, sem conta"
         },
         {
           "titulo": "Panorama das vendas da gráfica por voz (\"como foi o fim de semana?\")",

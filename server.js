@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 import { criarVoz } from "./voz.js";
 import { criarOuvido } from "./ouvido.js";
+import { buscarYoutube } from "./youtube.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 try { process.loadEnvFile(path.join(here, ".env")); } catch {}
@@ -118,7 +119,7 @@ Você tem ferramentas para marcar cronômetros (cura de cola, carga de bateria),
 
 A fala do Diego chega por reconhecimento de voz e pode vir com palavras trocadas. Se der para entender a intenção, siga em frente; se a dúvida mudar o que você faria, pergunte.
 
-Você ainda não controla luz, tomadas nem as impressoras 3D — isso vem nas próximas fases. Se ele pedir, diga com bom humor que ainda não tem mãos para isso.`;
+Você toca música pelo YouTube (ação tocar_musica). Você ainda não controla luz, tomadas nem as impressoras 3D — isso vem nas próximas fases. Se ele pedir, diga com bom humor que ainda não tem mãos para isso.`;
 
 const TOOLS = [
   {
@@ -153,6 +154,11 @@ const TOOLS = [
         falta: { type: "array", items: { type: "string" } },
       },
     },
+  },
+  {
+    name: "tocar_musica",
+    description: "Toca música no YouTube na tela do Claudinho. Passe uma busca boa (artista, música, estilo).",
+    input_schema: { type: "object", properties: { busca: { type: "string" } }, required: ["busca"] },
   },
   {
     name: "adicionar_plano",
@@ -248,7 +254,9 @@ function mexerPlanos(p) {
   salvarPlanos();
   return "ok";
 }
-let paraAbrir = null; // página que a tela deve abrir depois da resposta
+let paraAbrir = null;
+let paraTocar = null; // música que a tela deve tocar depois da resposta
+let musicaAgora = { titulo: "", tocando: false, quando: 0 }; // página que a tela deve abrir depois da resposta
 let estado = { cronometros: [], projeto: { nome: "", feito: [], falta: [] }, diario: [], tarefas: [] };
 try { estado = { ...estado, ...JSON.parse(fs.readFileSync(ARQ_ESTADO, "utf8")) }; } catch {}
 
@@ -283,6 +291,12 @@ function executar(nome, input = {}) {
     if (falta) estado.projeto.falta = falta;
     salvar();
     return "Projeto atualizado.";
+  }
+  if (nome === "tocar_musica") {
+    const busca = String(input.busca || "").trim();
+    if (!busca) return "Erro: diga o que tocar.";
+    paraTocar = busca;
+    return "Música vai começar a tocar na tela.";
   }
   if (nome === "abrir_pagina") {
     const url = String(input.url || "");
@@ -350,6 +364,7 @@ Em "acoes" vão as ações que você decidiu executar (lista vazia quando não h
 {"tipo": "cancelar_cronometro", "nome": "epóxi"}
 {"tipo": "atualizar_projeto", "nome": "nome do avião", "feito": ["etapas prontas"], "falta": ["etapas pendentes"]} — as listas enviadas substituem as anteriores; omita o campo que não muda
 {"tipo": "anotar_diario", "texto": "a anotação"}
+{"tipo": "tocar_musica", "busca": "legião urbana tempo perdido"} — toca no YouTube; use quando ele pedir música, artista, playlist ou um "som" (ex.: "algo animado" → escolha uma busca boa)
 {"tipo": "abrir_pagina", "url": "https://..."} — abre a página na tela, quando ele pedir pra ver/abrir algo
 {"tipo": "adicionar_tarefa", "texto": "comprar fita dupla face"} — "anota em tarefas"/"coloca na lista" sem grupo = Lista do dia
 {"tipo": "adicionar_plano", "grupo": "Casa", "titulo": "trocar a bomba da piscina", "status": "pendente"} — quando ele disser o grupo (Claudinho, Garagem dos sonhos, Aeromodelismo, Casa, Gráfica ou um novo)
@@ -519,6 +534,10 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "max-age=86400" });
       return fs.createReadStream(path.join(here, "public", "claudinho.png")).pipe(res);
     }
+    if (req.method === "GET" && url.pathname === "/musica.js") {
+      res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-store" });
+      return fs.createReadStream(path.join(here, "public", "musica.js")).pipe(res);
+    }
     if (req.method === "GET" && url.pathname === "/gravador.js") {
       res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-store" });
       return fs.createReadStream(path.join(here, "public", "gravador.js")).pipe(res);
@@ -538,6 +557,16 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { ok: true });
     }
     if (req.method === "GET" && url.pathname === "/api/diag") return json(res, 200, diagnostico);
+    if (req.method === "GET" && url.pathname === "/api/youtube") {
+      try { return json(res, 200, await buscarYoutube(url.searchParams.get("q") || "", 8)); }
+      catch (e) { console.error("youtube:", e.message); return json(res, 502, []); }
+    }
+    if (req.method === "POST" && url.pathname === "/api/musica") {
+      const m = await lerCorpo(req);
+      musicaAgora = { titulo: String(m.titulo || "").slice(0, 200), tocando: !!m.tocando, quando: Date.now() };
+      return json(res, 200, musicaAgora);
+    }
+    if (req.method === "GET" && url.pathname === "/api/musica") return json(res, 200, musicaAgora);
     if (req.method === "GET" && url.pathname === "/api/ouvido") return json(res, 200, { pronto: ouvido.pronto });
     // Ouvido próprio: recebe o trecho falado, devolve o texto e se a voz é a do chefe
     if (req.method === "POST" && url.pathname === "/api/ouvir") {
@@ -601,10 +630,12 @@ const server = http.createServer(async (req, res) => {
       const { texto } = await lerCorpo(req);
       if (typeof texto !== "string" || !texto.trim()) return json(res, 400, { erro: "texto vazio" });
       paraAbrir = null;
+      paraTocar = null;
       const fala = await falar(texto.trim().slice(0, 2000));
-      const abrir = paraAbrir;
+      const abrir = paraAbrir, tocar = paraTocar;
       paraAbrir = null;
-      return json(res, 200, { fala, abrir, estado: publico() });
+      paraTocar = null;
+      return json(res, 200, { fala, abrir, tocar, estado: publico() });
     }
     if (req.method === "POST" && url.pathname === "/api/cronometro/encerrar") {
       const { id } = await lerCorpo(req);

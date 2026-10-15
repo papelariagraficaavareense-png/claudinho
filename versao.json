@@ -1,5 +1,5 @@
 {
-  "versao": 18,
+  "versao": 19,
   "arquivos": [
     "server.js",
     "package.json",
@@ -20,6 +20,8 @@
     "CLAUDE REMOTO.bat",
     "vigia.bat",
     "ouvido.js",
-    "public/painel.html"
+    "public/painel.html",
+    "youtube.js",
+    "public/musica.js"
   ]
 }
