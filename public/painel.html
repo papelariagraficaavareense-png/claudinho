@@ -8,83 +8,93 @@
 <style>
   :root { --bg:#070b12; --painel:#0d1420; --painel2:#111b2b; --borda:#1c2a3d; --texto:#dbe7f5; --fraco:#7b8fa8; --azul:#35c6ff; --laranja:#ff9d3c; --verde:#4be3a1; --coral:#f08a5d; --roxo:#a78bfa; }
   * { box-sizing:border-box; }
-  html, body { height:100%; }
-  body { margin:0; background:var(--bg); color:var(--texto); font-family:"Segoe UI",system-ui,sans-serif; padding:24px; overflow:auto; }
-  .grade { display:grid; grid-template-columns:repeat(12, 1fr); gap:18px; max-width:1600px; margin:0 auto; }
-  .card { background:var(--painel); border:1px solid var(--borda); border-radius:20px; padding:22px; min-height:150px; }
-  .card h2 { margin:0 0 14px; font-size:13px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--fraco); display:flex; gap:8px; align-items:center; }
-  .c4 { grid-column:span 4; } .c6 { grid-column:span 6; } .c8 { grid-column:span 8; } .c12 { grid-column:span 12; }
-  @media (max-width:1000px) { .c4, .c6, .c8 { grid-column:span 12; } }
+  html, body { height:100%; margin:0; }
+  body { background:var(--bg); color:var(--texto); font-family:"Segoe UI",system-ui,sans-serif; overflow:hidden; }
+  /* Mosaico: quadrados do mesmo tamanho ocupando a tela toda (colunas e linhas calculadas no script) */
+  #grade { position:absolute; inset:14px 14px 34px; display:grid; gap:14px; }
+  .q { container-type:size; background:var(--painel); border:1px solid var(--borda); border-radius:18px; padding:4.5cqmin 5cqmin; overflow:hidden; display:flex; flex-direction:column; min-width:0; min-height:0; }
+  .q h2 { margin:0 0 3cqh; font-size:clamp(11px, 6cqmin, 22px); font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--fraco); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .q .corpo { flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column; }
+  .q.breve { opacity:.45; border-style:dashed; }
+  .rodape { position:absolute; left:0; right:0; bottom:8px; text-align:center; color:var(--fraco); font-size:13px; }
 
-  .hora { font-size:clamp(64px, 9vw, 130px); font-weight:300; line-height:1; font-variant-numeric:tabular-nums; }
-  .data { color:var(--fraco); font-size:20px; margin-top:8px; text-transform:capitalize; }
-  .saudacao { margin-top:16px; font-size:20px; } .saudacao b { color:var(--coral); font-weight:600; }
+  .hora { font-size:30cqmin; font-weight:300; line-height:1; font-variant-numeric:tabular-nums; }
+  .data { color:var(--fraco); font-size:7cqmin; margin-top:3cqh; text-transform:capitalize; }
+  .saudacao { margin-top:auto; font-size:7.5cqmin; } .saudacao b { color:var(--coral); font-weight:600; }
 
-  .clima-agora { display:flex; align-items:center; gap:18px; }
-  .clima-icone { font-size:64px; line-height:1; }
-  .clima-temp { font-size:56px; font-weight:300; }
-  .clima-desc { color:var(--fraco); font-size:16px; }
-  .dias { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px; }
-  .dia { background:var(--painel2); border-radius:12px; padding:10px; text-align:center; font-size:14px; }
-  .dia b { display:block; font-size:22px; margin:4px 0; }
-  .dia small { color:var(--azul); }
+  .clima-agora { display:flex; align-items:center; gap:4cqw; }
+  .clima-icone { font-size:22cqmin; line-height:1; }
+  .clima-temp { font-size:20cqmin; font-weight:300; line-height:1; }
+  .clima-desc { color:var(--fraco); font-size:5.5cqmin; }
+  .dias { display:grid; grid-template-columns:repeat(3,1fr); gap:2.5cqw; margin-top:auto; }
+  .dia { background:var(--painel2); border-radius:10px; padding:2.5cqmin; text-align:center; font-size:5cqmin; }
+  .dia b { display:block; font-size:6.5cqmin; margin:1cqh 0; }
+  .dia small { color:var(--azul); font-size:4.5cqmin; }
 
   .lista { list-style:none; margin:0; padding:0; }
-  .lista li { padding:10px 0; border-top:1px solid var(--borda); font-size:17px; display:flex; gap:10px; align-items:baseline; }
+  .lista li { padding:2.2cqh 0; border-top:1px solid var(--borda); font-size:6.5cqmin; display:flex; gap:2cqw; align-items:baseline; overflow:hidden; }
   .lista li:first-child { border-top:0; }
-  .lista .tag { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--fraco); white-space:nowrap; }
-  .vazio { color:var(--fraco); font-size:16px; }
-  .cron { display:flex; justify-content:space-between; align-items:baseline; padding:10px 0; border-top:1px solid var(--borda); font-size:18px; }
+  .lista .tag { font-size:4.2cqmin; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--fraco); white-space:nowrap; }
+  .vazio { color:var(--fraco); font-size:6cqmin; }
+  .cron { display:flex; justify-content:space-between; align-items:baseline; padding:2cqh 0; border-top:1px solid var(--borda); font-size:7cqmin; gap:2cqw; }
   .cron:first-child { border-top:0; }
-  .cron span { font-size:34px; color:var(--laranja); font-variant-numeric:tabular-nums; }
+  .cron span { font-size:12cqmin; color:var(--laranja); font-variant-numeric:tabular-nums; }
   .cron.fim span { color:var(--verde); }
 
-  .estado { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px; }
-  .chip { background:var(--painel2); border-radius:12px; padding:12px 14px; }
-  .chip small { display:block; color:var(--fraco); font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
-  .chip b { font-size:18px; font-weight:600; }
+  .estado { display:grid; grid-template-columns:1fr 1fr; gap:2.5cqmin; }
+  .chip { background:var(--painel2); border-radius:10px; padding:2.5cqmin 3cqmin; }
+  .chip small { display:block; color:var(--fraco); font-size:4cqmin; letter-spacing:.05em; text-transform:uppercase; }
+  .chip b { font-size:6cqmin; font-weight:600; }
   .ok { color:var(--verde); } .alerta { color:var(--laranja); }
-  .rodape { text-align:center; color:var(--fraco); font-size:14px; margin-top:20px; }
+  .breve .corpo { justify-content:center; align-items:center; text-align:center; color:var(--fraco); font-size:6.5cqmin; gap:2cqh; }
+  .breve .corpo .ic { font-size:22cqmin; }
 </style>
 </head>
 <body>
-<div class="grade">
-  <section class="card c4">
+<div id="grade">
+  <section class="q"><h2>🕗 Agora</h2><div class="corpo">
     <div class="hora" id="hora">--:--</div>
     <div class="data" id="data"></div>
     <div class="saudacao" id="saudacao"></div>
-  </section>
+  </div></section>
 
-  <section class="card c4">
-    <h2>☁️ Clima em Avaré</h2>
-    <div id="clima"><div class="vazio">Carregando…</div></div>
-  </section>
+  <section class="q"><h2>☁️ Clima em Avaré</h2><div class="corpo" id="clima"><div class="vazio">Carregando…</div></div></section>
 
-  <section class="card c4">
-    <h2>⏱️ Cronômetros</h2>
-    <div id="crons"><div class="vazio">Nenhum rodando.</div></div>
-  </section>
+  <section class="q"><h2>⏱️ Cronômetros</h2><div class="corpo" id="crons"><div class="vazio">Nenhum rodando.</div></div></section>
 
-  <section class="card c6">
-    <h2>🗒️ Lista do dia</h2>
-    <ul class="lista" id="dia"><li class="vazio">Nada anotado. Diga "hey Claudinho, anota em tarefas…"</li></ul>
-  </section>
+  <section class="q"><h2>🗒️ Lista do dia</h2><div class="corpo"><ul class="lista" id="dia"></ul></div></section>
 
-  <section class="card c6">
-    <h2>🔧 Em andamento</h2>
-    <ul class="lista" id="andamento"></ul>
-  </section>
+  <section class="q"><h2>🔧 Em andamento</h2><div class="corpo"><ul class="lista" id="andamento"></ul></div></section>
 
-  <section class="card c12">
-    <h2>🤖 Claudinho</h2>
-    <div class="estado" id="estado"></div>
-  </section>
+  <section class="q"><h2>🤖 Claudinho</h2><div class="corpo"><div class="estado" id="estado"></div></div></section>
+
+  <section class="q breve"><h2>💰 Vendas da gráfica</h2><div class="corpo"><div class="ic">💰</div>em breve</div></section>
+
+  <section class="q breve"><h2>📹 Câmeras</h2><div class="corpo"><div class="ic">📹</div>em breve</div></section>
 </div>
 <div class="rodape">Diga "hey Claudinho, fecha o painel" pra voltar</div>
 
 <script>
 const $ = (id) => document.getElementById(id);
 const el = (tag, classe, texto) => { const e = document.createElement(tag); if (classe) e.className = classe; if (texto != null) e.textContent = texto; return e; };
+
+// Escolhe quantas colunas e linhas deixam os quadrados o mais "quadrados" e maiores possível
+function arrumar() {
+  const g = $("grade");
+  const n = g.children.length;
+  const W = g.clientWidth, H = g.clientHeight, gap = 14;
+  let melhor = { cols: 1, rows: n, lado: 0 };
+  for (let cols = 1; cols <= n; cols++) {
+    const rows = Math.ceil(n / cols);
+    const w = (W - gap * (cols - 1)) / cols, h = (H - gap * (rows - 1)) / rows;
+    const lado = Math.min(w, h) * (1 - Math.abs(w - h) / Math.max(w, h) * 0.35);
+    if (lado > melhor.lado) melhor = { cols, rows, lado };
+  }
+  g.style.gridTemplateColumns = `repeat(${melhor.cols}, minmax(0, 1fr))`;
+  g.style.gridTemplateRows = `repeat(${melhor.rows}, minmax(0, 1fr))`;
+}
+addEventListener("resize", arrumar);
+arrumar();
 
 function relogio() {
   const d = new Date();
@@ -112,13 +122,13 @@ function clima() {
       const [ic, desc] = tempo(c.current.weather_code);
       const agora = el("div", "clima-agora");
       const info = el("div");
-      info.append(el("div", "clima-temp", Math.round(c.current.temperature_2m) + "°"), el("div", "clima-desc", `${desc} · umidade ${c.current.relative_humidity_2m}% · vento ${Math.round(c.current.wind_speed_10m)} km/h`));
+      info.append(el("div", "clima-temp", Math.round(c.current.temperature_2m) + "°"), el("div", "clima-desc", `${desc} · umidade ${c.current.relative_humidity_2m}%`));
       agora.append(el("div", "clima-icone", ic), info);
       const dias = el("div", "dias");
       c.daily.time.forEach((t, i) => {
         const d = el("div", "dia");
         const nome = i === 0 ? "Hoje" : new Date(t + "T12:00").toLocaleDateString("pt-BR", { weekday: "short" });
-        d.append(document.createTextNode(nome + " " + tempo(c.daily.weather_code[i])[0]), el("b", "", `${Math.round(c.daily.temperature_2m_max[i])}° / ${Math.round(c.daily.temperature_2m_min[i])}°`), el("small", "", `chuva ${c.daily.precipitation_probability_max[i] ?? 0}%`));
+        d.append(document.createTextNode(nome + " " + tempo(c.daily.weather_code[i])[0]), el("b", "", `${Math.round(c.daily.temperature_2m_max[i])}°/${Math.round(c.daily.temperature_2m_min[i])}°`), el("small", "", `chuva ${c.daily.precipitation_probability_max[i] ?? 0}%`));
         dias.append(d);
       });
       $("clima").replaceChildren(agora, dias);
@@ -140,21 +150,20 @@ function dados() {
   fetch("/api/estado").then((r) => r.json()).then((e) => {
     crons = e.cronometros || [];
     desenharCrons();
-    fetch("/api/voz").then((r) => r.json()).catch(() => ({})).then((v) => fetch("/api/ouvido").then((r) => r.json()).catch(() => ({})).then((o) => {
+    Promise.all([fetch("/api/voz").then((r) => r.json()).catch(() => ({})), fetch("/api/ouvido").then((r) => r.json()).catch(() => ({}))]).then(([v, o]) => {
       const chips = [
         ["Versão", "v" + e.versao, ""],
         ["Cérebro", e.temChave ? "ligado" : "sem cérebro", e.temChave ? "ok" : "alerta"],
-        ["Ouvido", o.pronto ? "próprio (offline)" : "do navegador", o.pronto ? "ok" : "alerta"],
+        ["Ouvido", o.pronto ? "próprio" : "navegador", o.pronto ? "ok" : "alerta"],
         ["Sua voz", v.cadastrada ? "cadastrada" : "não cadastrada", v.cadastrada ? "ok" : "alerta"],
-        ["Tarefas do dia", String((e.tarefas || []).length), ""],
       ];
       $("estado").replaceChildren(...chips.map(([rot, val, cls]) => { const c = el("div", "chip"); c.append(el("small", "", rot), el("b", cls, val)); return c; }));
-    }));
+    });
   }).catch(() => {});
   fetch("/api/planos").then((r) => r.json()).then((p) => {
     const dia = p.tarefas || [];
-    $("dia").replaceChildren(...(dia.length ? dia.map((t) => el("li", "", t.texto)) : [el("li", "vazio", 'Nada anotado. Diga "hey Claudinho, anota em tarefas…"')]));
-    const andando = p.grupos.flatMap((g) => g.itens.filter((i) => i.status === "andamento").map((i) => ({ g: g.nome, t: i.titulo }))).slice(0, 6);
+    $("dia").replaceChildren(...(dia.length ? dia.slice(0, 6).map((t) => el("li", "", t.texto)) : [el("li", "vazio", 'Nada anotado. Diga "hey Claudinho, anota em tarefas…"')]));
+    const andando = p.grupos.flatMap((g) => g.itens.filter((i) => i.status === "andamento").map((i) => ({ g: g.nome, t: i.titulo }))).slice(0, 5);
     $("andamento").replaceChildren(...(andando.length ? andando.map((x) => { const li = el("li"); li.append(el("span", "tag", x.g), document.createTextNode(x.t)); return li; }) : [el("li", "vazio", "Nada em andamento.")]));
   }).catch(() => {});
 }
